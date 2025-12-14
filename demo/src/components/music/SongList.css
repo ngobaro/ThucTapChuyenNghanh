@@ -1,0 +1,41 @@
+/* SongList.css - Phiên bản đơn giản */
+.song-list-container {
+  padding: 20px;
+  background: linear-gradient(to bottom, #121212, #000);
+  min-height: 100vh;
+}
+
+.song-list-title {
+  color: white;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 30px;
+}
+
+.song-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 24px;
+  width: 100%;
+}
+
+/* Responsive grid */
+@media (max-width: 1200px) {
+  .song-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .song-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .song-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+  }
+}

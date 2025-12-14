@@ -1,0 +1,133 @@
+/* SongCard.css - Phiên bản đơn giản */
+.song-card {
+  background: #181818;
+  border-radius: 8px;
+  padding: 16px;
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  width: 100%;
+}
+
+.song-card:hover {
+  background: #282828;
+}
+
+.song-card-image-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.song-card-image {
+  width: 100%;
+  aspect-ratio: 1/1;
+  border-radius: 6px;
+  object-fit: cover;
+  display: block;
+}
+
+.play-button {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 48px;
+  height: 48px;
+  background: #1db954;
+  border-radius: 50%;
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.song-card:hover .play-button {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.play-button:hover {
+  background: #1ed760;
+  transform: scale(1.05);
+}
+
+.play-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.song-info {
+  min-height: 60px;
+}
+
+.song-title {
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.song-artist {
+  color: #b3b3b3;
+  font-size: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Trạng thái đang phát */
+.song-card.playing {
+  background: rgba(29, 185, 84, 0.1);
+}
+
+.song-card.playing .play-button {
+  background: #ff6b6b;
+  opacity: 1;
+}
+
+.song-card.playing .play-button:hover {
+  background: #ff5252;
+}
+
+/* Trạng thái loading */
+.song-card.loading {
+  background: #282828;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.song-card.loading .song-card-image {
+  background: #333;
+}
+
+.song-card.loading .song-title,
+.song-card.loading .song-artist {
+  background: #333;
+  height: 16px;
+  border-radius: 4px;
+  width: 80%;
+}
+
+.song-card.loading .song-artist {
+  width: 60%;
+  margin-top: 8px;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

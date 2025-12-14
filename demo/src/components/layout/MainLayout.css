@@ -1,0 +1,42 @@
+/* MainLayout.css */
+.main-layout {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  background-color: var(--bg-secondary);
+  position: relative;
+}
+
+/* Đảm bảo content scrollable */
+.content-scrollable {
+  min-height: 100%;
+  padding: 20px;
+}
+
+/* Cho các trang có danh sách bài hát */
+.songs-page {
+  min-height: calc(100vh - 70px - 90px); /* header + player */
+  display: flex;
+  flex-direction: column;
+}
+
+.song-list-container {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
