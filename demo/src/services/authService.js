@@ -1,6 +1,4 @@
-// FILE: src/services/authService.js
-// Thay thế toàn bộ nội dung file này
-
+// FILE: demo/src/services/authService.js
 import api from './api';
 import { API_ENDPOINTS } from '../utils/constants';
 
@@ -10,9 +8,8 @@ export const login = async (username, password) => {
       username,
       password
     });
-    console.log('Login response full:', response.data);
+    console.log('✅ Login response full:', response.data);
 
-    // Extract từ response.data (backend ApiResponse)
     const data = response.data.result || response.data;
     let token = data.token || data.access_token;
     let refreshToken = data.refreshToken || data.refresh_token;
@@ -21,13 +18,22 @@ export const login = async (username, password) => {
       throw new Error('Invalid token received from backend');
     }
 
+    // ✅ LƯU TOKEN VÀO LOCALSTORAGE
     localStorage.setItem('token', token);
-    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-    localStorage.setItem('user', JSON.stringify({ username, role: data.role || 'USER' }));
+    console.log('✅ Token saved to localStorage:', token);
+    
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
+    
+    localStorage.setItem('user', JSON.stringify({ 
+      username, 
+      role: data.role || 'USER' 
+    }));
 
     return { success: true, data, token };
   } catch (error) {
-    console.error('Login error:', error.response?.data || error.message);
+    console.error('❌ Login error:', error.response?.data || error.message);
     const errorMsg = error.response?.data?.message || 'Unauthenticated - Username hoặc password không đúng!';
     return { success: false, error: errorMsg };
   }
@@ -39,10 +45,8 @@ export const register = async (userData) => {
     const response = await api.post(API_ENDPOINTS.USERS, userData);
     console.log('Register API response:', response);
     
-    // ✅ FIX: Backend trả về { code: 1000, result: {...} }
     const data = response.data;
     
-    // Kiểm tra code === 1000 (success) hoặc status 200/201
     if (data.code === 1000 || response.status === 200 || response.status === 201) {
       return { 
         success: true, 
@@ -50,13 +54,11 @@ export const register = async (userData) => {
         message: data.message || 'Đăng ký thành công!'
       };
     } else {
-      // Backend trả về code khác 1000
       throw new Error(data.message || 'Đăng ký thất bại');
     }
   } catch (error) {
     console.error('Register error:', error.response?.data || error);
     
-    // Extract error message từ backend
     const errorData = error.response?.data;
     let errorMsg = 'Đăng ký thất bại!';
     
@@ -66,7 +68,6 @@ export const register = async (userData) => {
       } else if (errorData.error) {
         errorMsg = errorData.error;
       } else if (errorData.code) {
-        // Map error codes
         const errorMap = {
           1001: 'Username đã tồn tại',
           1002: 'Email đã được sử dụng',

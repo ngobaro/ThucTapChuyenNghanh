@@ -1,3 +1,4 @@
+// FILE: demo/src/services/api.js
 import axios from 'axios';
 import { API_BASE_URL, API_ENDPOINTS } from '../utils/constants';
 
@@ -9,10 +10,13 @@ const api = axios.create({
   }
 });
 
-// Request interceptor - Thêm token vào header
+// ✅ Request interceptor - Thêm token vào header
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    console.log('🔑 Sending request with token:', token ? 'YES' : 'NO'); // Debug
+    console.log('🔑 Token value:', token); // Debug
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -23,7 +27,7 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor - Handle errors
+// ✅ Response interceptor - Handle 401 errors
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -47,6 +51,7 @@ api.interceptors.response.use(
           return api(originalRequest);
         }
       } catch (refreshError) {
+        console.error('❌ Refresh token failed, redirecting to login...');
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');

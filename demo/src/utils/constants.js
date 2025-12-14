@@ -1,3 +1,5 @@
+// FILE: demo/src/utils/constants.js
+
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/music';
 export const APP_NAME = import.meta.env.VITE_APP_NAME || 'Music Web';
 
@@ -36,6 +38,13 @@ export const API_ENDPOINTS = {
   // Artists
   ARTISTS: '/artists',
   ARTIST_BY_ID: (id) => `/artists/${id}`,
+  
+  // Artist Songs (nếu có endpoint này)
+  ARTIST_SONGS: {
+    BASE: '/artistsongs',
+    BY_ARTIST: (artistId) => `/artistsongs/artist/${artistId}`,
+    BY_SONG: (songId) => `/artistsongs/song/${songId}`,
+  },
   
   // Genres
   GENRES: '/genres',
