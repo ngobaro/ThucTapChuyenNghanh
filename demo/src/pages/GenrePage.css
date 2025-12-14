@@ -1,0 +1,81 @@
+/* FILE: demo/src/pages/GenrePage.css */
+
+.genre-page {
+  min-height: 100vh;
+}
+
+.genre-header {
+  padding: 40px 20px;
+  color: white;
+  position: relative;
+}
+
+.genre-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(to bottom, transparent, var(--bg-primary));
+}
+
+.genre-header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.genre-title {
+  font-size: 48px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.genre-description {
+  font-size: 18px;
+  opacity: 0.9;
+  margin-bottom: 24px;
+  max-width: 600px;
+}
+
+.genre-stats {
+  display: flex;
+  gap: 24px;
+}
+
+.stat-item {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.genre-content {
+  padding: 40px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.btn-shuffle {
+  padding: 10px 24px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.btn-shuffle:hover {
+  transform: scale(1.05);
+}
+
+.no-songs {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}

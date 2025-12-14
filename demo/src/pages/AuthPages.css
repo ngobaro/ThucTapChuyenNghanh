@@ -1,87 +1,204 @@
+/* FILE: src/pages/AuthPages.css */
+
+/* Reset và base styles */
+.auth-page * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 .auth-page {
   min-height: 100vh;
   display: flex;
-  justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, var(--bg-dark) 0%, #282828 100%);
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 1rem;
 }
 
 .auth-container {
+  background: white;
+  padding: 2.5rem;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   width: 100%;
-  max-width: 400px;
-  padding: 40px;
-  background-color: var(--bg-secondary);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  max-width: 420px;
+  text-align: center;
 }
 
+/* Tiêu đề */
 .auth-container h1 {
-  text-align: center;
-  margin-bottom: 8px;
-  font-size: 32px;
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+  font-weight: 800;
 }
 
 .auth-container h2 {
-  text-align: center;
-  margin-bottom: 32px;
-  color: var(--text-secondary);
+  font-size: 1.8rem;
+  color: #555;
+  margin-bottom: 2rem;
+  font-weight: 600;
 }
 
+/* Form styles */
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 1.5rem;
+  text-align: left;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 8px;
-  color: var(--text-secondary);
-  font-size: 14px;
+  margin-bottom: 0.5rem;
+  color: #555;
+  font-weight: 500;
+  font-size: 0.95rem;
 }
 
 .form-group input {
   width: 100%;
-  padding: 12px;
-  background-color: var(--bg-hover);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  color: var(--text-primary);
-  font-size: 14px;
+  padding: 0.875rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.3s;
+  background: #f8f9fa;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: var(--primary-color);
+  border-color: #667eea;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+.form-group input::placeholder {
+  color: #999;
+}
+
+.form-group input:disabled {
+  background: #e9ecef;
+  cursor: not-allowed;
+}
+
+/* Error message */
+.error-message {
+  background: #fee;
+  color: #e74c3c;
+  padding: 0.875rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  border-left: 4px solid #e74c3c;
+  text-align: left;
+}
+
+/* Button */
+button[type="submit"],
 .btn-submit {
   width: 100%;
-  padding: 14px;
-  background-color: var(--primary-color);
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
   border: none;
-  border-radius: 24px;
-  color: var(--text-primary);
-  font-size: 16px;
+  border-radius: 10px;
+  font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
+  margin-top: 0.5rem;
 }
 
+button[type="submit"]:hover,
 .btn-submit:hover {
-  background-color: #1ed760;
-  transform: scale(1.02);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
 }
 
+button[type="submit"]:disabled,
+.btn-submit:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Link */
 .auth-link {
-  text-align: center;
-  margin-top: 24px;
-  color: var(--text-secondary);
+  margin-top: 2rem;
+  color: #666;
+  font-size: 0.95rem;
 }
 
 .auth-link a {
-  color: var(--primary-color);
+  color: #667eea;
   text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s;
 }
 
 .auth-link a:hover {
+  color: #5a67d8;
   text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 2rem 1.5rem;
+  }
+  
+  .auth-container h1 {
+    font-size: 2rem;
+  }
+  
+  .auth-container h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-container {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Thêm style cho loading state */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Success/Error states */
+.success-message {
+  background: #d4edda;
+  color: #155724;
+  padding: 0.875rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  border-left: 4px solid #28a745;
+  text-align: left;
 }
