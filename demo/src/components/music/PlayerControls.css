@@ -1,7 +1,22 @@
+/* FILE: demo/src/components/music/PlayerControls.css */
+
 .player-controls {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: center;
+  gap: 20px;
+  padding: 10px 0;
+}
+
+.player-controls.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.no-song-text {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
 }
 
 .btn-control {
@@ -9,16 +24,24 @@
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 8px;
-  transition: all 0.2s;
+  padding: 10px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
-.btn-control:hover {
+.btn-control:hover:not(:disabled) {
   color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.1);
   transform: scale(1.1);
+}
+
+.btn-control:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-control.active {
@@ -26,15 +49,35 @@
 }
 
 .btn-play-pause {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 56px;
+  height: 56px;
   background-color: var(--text-primary);
-  color: var(--bg-dark);
+  color: var(--bg-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.btn-play-pause:hover {
-  transform: scale(1.1);
+.btn-play-pause:hover:not(:disabled) {
   background-color: var(--primary-color);
   color: var(--text-primary);
+  transform: scale(1.05);
+}
+
+.btn-play-pause:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.btn-prev:hover:not(:disabled),
+.btn-next:hover:not(:disabled) {
+  transform: scale(1.1);
+}
+
+.active-indicator {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
 }
