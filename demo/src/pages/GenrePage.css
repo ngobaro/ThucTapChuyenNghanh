@@ -1,81 +1,228 @@
 /* FILE: demo/src/pages/GenrePage.css */
 
 .genre-page {
-  min-height: 100vh;
+  padding-bottom: 100px;
 }
 
 .genre-header {
-  padding: 40px 20px;
-  color: white;
+  padding: 2.5rem;
+  margin: -2rem -2rem 2rem -2rem;
+  border-radius: 0 0 12px 12px;
   position: relative;
+  overflow: hidden;
 }
 
-.genre-header::after {
+.genre-header::before {
   content: '';
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
   right: 0;
-  height: 100px;
-  background: linear-gradient(to bottom, transparent, var(--bg-primary));
+  bottom: 0;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1));
 }
 
 .genre-header-content {
-  max-width: 1200px;
-  margin: 0 auto;
   position: relative;
   z-index: 1;
+  max-width: 800px;
+}
+
+.genre-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .genre-title {
-  font-size: 48px;
+  font-size: 3rem;
   font-weight: 800;
-  margin-bottom: 16px;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  line-height: 1.2;
 }
 
 .genre-description {
-  font-size: 18px;
-  opacity: 0.9;
-  margin-bottom: 24px;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
   max-width: 600px;
+  line-height: 1.6;
 }
 
 .genre-stats {
   display: flex;
-  gap: 24px;
+  gap: 1.5rem;
+  align-items: center;
 }
 
 .stat-item {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 8px 16px;
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
+  font-size: 0.95rem;
+  color: var(--text-secondary);
 }
 
-.genre-content {
-  padding: 40px 20px;
-  max-width: 1200px;
-  margin: 0 auto;
+.stat-item strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Controls */
+.genre-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
 .btn-shuffle {
-  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
   background: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 24px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: all 0.2s;
 }
 
 .btn-shuffle:hover {
-  transform: scale(1.05);
+  background: var(--primary-dark);
+  transform: translateY(-1px);
 }
 
+/* Content */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.section-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.song-count {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+}
+
+/* No songs */
 .no-songs {
   text-align: center;
-  padding: 60px 20px;
+  padding: 4rem 2rem;
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border: 2px dashed var(--border-color);
+}
+
+.no-songs p {
+  font-size: 1.1rem;
   color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.no-songs button {
+  padding: 0.75rem 1.5rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.no-songs button:hover {
+  background: var(--primary-dark);
+}
+
+/* Loading */
+.genre-page.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 1rem;
+}
+
+.genre-page.loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.genre-page.loading p {
+  color: var(--text-secondary);
+}
+
+/* Not found */
+.genre-page.not-found {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.genre-page.not-found h2 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+}
+
+.genre-page.not-found button {
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .genre-header {
+    padding: 1.5rem;
+    margin: -1rem -1rem 1.5rem -1rem;
+  }
+  
+  .genre-title {
+    font-size: 2rem;
+  }
+  
+  .genre-description {
+    font-size: 1rem;
+  }
+  
+  .genre-controls {
+    flex-direction: column;
+  }
+  
+  .btn-shuffle {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
