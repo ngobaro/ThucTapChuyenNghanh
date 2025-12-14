@@ -1,9 +1,14 @@
+/* FILE: src/pages/HomePage.css
+   Thay thế toàn bộ nội dung file này */
+
 .home-page {
   padding: 20px;
   max-width: 1400px;
   margin: 0 auto;
+  min-height: 100%;
 }
 
+/* Hero Section */
 .hero-section {
   text-align: center;
   padding: 60px 20px;
@@ -18,6 +23,7 @@
   background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .hero-section p {
@@ -25,15 +31,35 @@
   color: var(--text-secondary);
 }
 
-.loading-container,
-.error-container,
-.empty-state {
+/* Section */
+.section {
+  margin-bottom: 48px;
+}
+
+.section h2 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  color: var(--text-primary);
+}
+
+/* Song Grid - Cards Layout */
+.song-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+  margin-bottom: 48px;
+}
+
+/* Loading State */
+.loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 400px;
   text-align: center;
+  animation: fadeIn 0.3s ease;
 }
 
 .spinner {
@@ -49,16 +75,29 @@
   to { transform: rotate(360deg); }
 }
 
-.loading-container p,
-.error-container p,
-.empty-state p {
+.loading-container p {
   margin-top: 20px;
   font-size: 16px;
   color: var(--text-secondary);
 }
 
+/* Error State */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+}
+
+.error-container p {
+  margin-bottom: 20px;
+  font-size: 16px;
+  color: #ff6b6b;
+}
+
 .btn-retry {
-  margin-top: 16px;
   padding: 12px 24px;
   background-color: var(--primary-color);
   border: none;
@@ -74,12 +113,91 @@
   transform: scale(1.05);
 }
 
-@media (max-width: 768px) {
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+}
+
+.empty-state p {
+  margin-top: 20px;
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+
+/* Fade In Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
   .hero-section h1 {
-    font-size: 32px;
+    font-size: 36px;
   }
   
   .hero-section p {
     font-size: 16px;
+  }
+  
+  .song-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-page {
+    padding: 16px;
+  }
+  
+  .hero-section {
+    padding: 40px 16px;
+  }
+  
+  .hero-section h1 {
+    font-size: 28px;
+  }
+  
+  .hero-section p {
+    font-size: 14px;
+  }
+  
+  .section h2 {
+    font-size: 24px;
+    margin-bottom: 16px;
+  }
+  
+  .song-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-section {
+    padding: 30px 12px;
+  }
+  
+  .hero-section h1 {
+    font-size: 24px;
+  }
+  
+  .section h2 {
+    font-size: 20px;
+  }
+  
+  .song-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
   }
 }

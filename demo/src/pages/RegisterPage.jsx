@@ -1,3 +1,6 @@
+// FILE: src/pages/RegisterPage.jsx
+// Thay thế toàn bộ nội dung file này
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../services/authService';
@@ -7,7 +10,7 @@ import './AuthPages.css';
 function RegisterPage() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    username: '', // Sửa name → username để match backend
+    username: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -17,6 +20,8 @@ function RegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validation
     if (formData.password !== formData.confirmPassword) {
       setError('Mật khẩu không khớp!');
       return;
@@ -25,6 +30,7 @@ function RegisterPage() {
       setError('Mật khẩu phải ít nhất 6 ký tự!');
       return;
     }
+    
     setError('');
     setLoading(true);
     
@@ -34,20 +40,24 @@ function RegisterPage() {
         email: formData.email,
         password: formData.password
       };
-      const response = await register(userData);
       
+      console.log('Sending register data:', userData);
+      const response = await register(userData);
       console.log('Register response:', response);
       
-      if (response.success) {
+      // ✅ FIX: Kiểm tra response.success HOẶC response.data
+      if (response.success || (response.data && response.data.code === 1000)) {
         alert('Đăng ký thành công! Vui lòng đăng nhập.');
         navigate(ROUTES.LOGIN);
       } else {
-        const errorMsg = response.error?.message || 'Đăng ký thất bại!';
+        // Hiển thị error message từ backend
+        const errorMsg = response.error || response.message || 'Đăng ký thất bại!';
         setError(errorMsg);
       }
     } catch (err) {
       console.error('Register catch error:', err);
-      setError('Có lỗi kết nối. Vui lòng thử lại!');
+      const errorMsg = err.response?.data?.message || err.message || 'Có lỗi kết nối. Vui lòng thử lại!';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -75,6 +85,7 @@ function RegisterPage() {
               placeholder="Nhập username"
               required
               disabled={loading}
+              autoComplete="username"
             />
           </div>
           
@@ -87,6 +98,7 @@ function RegisterPage() {
               placeholder="Nhập email"
               required
               disabled={loading}
+              autoComplete="email"
             />
           </div>
           
@@ -99,6 +111,7 @@ function RegisterPage() {
               placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
               required
               disabled={loading}
+              autoComplete="new-password"
             />
           </div>
           
@@ -111,6 +124,7 @@ function RegisterPage() {
               placeholder="Nhập lại mật khẩu"
               required
               disabled={loading}
+              autoComplete="new-password"
             />
           </div>
           

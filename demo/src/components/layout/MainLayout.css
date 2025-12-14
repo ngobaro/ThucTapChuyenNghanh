@@ -1,9 +1,22 @@
-/* MainLayout.css */
+/* ============================================
+   FILE: src/components/layout/MainLayout.css
+   Copy toàn bộ nội dung này vào file src/components/layout/MainLayout.css
+   ============================================ */
+
 .main-layout {
   height: 100vh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background-color: var(--bg-dark);
+}
+
+.main-layout > .header {
+  height: var(--header-height);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1000;
 }
 
 .main-content {
@@ -11,32 +24,190 @@
   flex: 1;
   overflow: hidden;
   position: relative;
+  height: calc(100vh - var(--header-height) - var(--player-height));
 }
 
-.content-area {
+.main-content > .sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+  background-color: var(--bg-dark);
+  border-right: 1px solid var(--border-color);
+}
+
+.main-content > .content-area {
   flex: 1;
   overflow-y: auto;
-  background-color: var(--bg-secondary);
+  overflow-x: hidden;
+  background: linear-gradient(to bottom, var(--bg-secondary) 0%, var(--bg-dark) 100%);
+  height: 100%;
   position: relative;
 }
 
-/* Đảm bảo content scrollable */
+.content-area > * {
+  width: 100%;
+  max-width: 100%;
+}
+
+.main-layout > .player-bar {
+  height: var(--player-height);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1000;
+}
+
+.sidebar::-webkit-scrollbar,
+.content-area::-webkit-scrollbar {
+  width: 12px;
+}
+
+.sidebar::-webkit-scrollbar-track,
+.content-area::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.content-area::-webkit-scrollbar-thumb {
+  background: var(--bg-hover);
+  border-radius: 6px;
+  border: 3px solid var(--bg-dark);
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover,
+.content-area::-webkit-scrollbar-thumb:hover {
+  background: #333333;
+}
+
+.sidebar,
+.content-area {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-hover) var(--bg-dark);
+}
+
 .content-scrollable {
   min-height: 100%;
   padding: 20px;
 }
 
-/* Cho các trang có danh sách bài hát */
-.songs-page {
-  min-height: calc(100vh - 70px - 90px); /* header + player */
-  display: flex;
-  flex-direction: column;
+.songs-page,
+.home-page,
+.search-page,
+.library-page,
+.favorites-page,
+.profile-page,
+.playlist-page,
+.dashboard-page {
+  min-height: 100%;
+  padding: 20px;
 }
 
 .song-list-container {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
+  min-height: 100%;
   padding: 20px;
+}
+
+.song-grid,
+.playlists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.loading-container,
+.error-container,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .main-content {
+    height: calc(100vh - 60px - 90px);
+  }
+  
+  .song-grid,
+  .playlists-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+  }
+  
+  .content-scrollable,
+  .songs-page,
+  .song-list-container {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    height: calc(100vh - 60px - 120px);
+  }
+  
+  .main-content > .sidebar {
+    width: 60px;
+  }
+  
+  .song-grid,
+  .playlists-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  
+  .content-scrollable,
+  .songs-page,
+  .song-list-container {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    height: calc(100vh - 60px - 120px);
+  }
+  
+  .main-content > .sidebar {
+    display: none;
+  }
+  
+  .main-content > .content-area {
+    width: 100%;
+  }
+  
+  .song-grid,
+  .playlists-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  
+  .content-scrollable,
+  .songs-page,
+  .song-list-container {
+    padding: 10px;
+  }
+}
+
+@media print {
+  .main-content > .sidebar,
+  .main-layout > .header,
+  .main-layout > .player-bar {
+    display: none;
+  }
+  
+  .main-content > .content-area {
+    overflow: visible;
+    height: auto;
+  }
+  
+  .main-layout {
+    height: auto;
+  }
 }
