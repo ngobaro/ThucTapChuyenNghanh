@@ -1,11 +1,11 @@
-// FILE: demo/src/pages/DiscoverPage.jsx
+// FILE: demo/src/pages/RankPage.jsx
 
 import { useState, useEffect } from 'react';
 import SongCard from '../components/music/SongCard';
 import { getAllSongs } from '../services/songService';
-import './DiscoverPage.css';
+import './RankPage.css';
 
-function DiscoverPage() {
+function RankPage() {
   const [trendingSongs, setTrendingSongs] = useState([]);
   const [newReleases, setNewReleases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,21 +37,21 @@ function DiscoverPage() {
 
   if (loading) {
     return (
-      <div className="discover-page loading">
+      <div className="rank-page loading">
         <div className="spinner"></div>
       </div>
     );
   }
 
   return (
-    <div className="discover-page">
+    <div className="rank-page">
       <div className="page-header">
-        <h1>Khám phá</h1>
-        <p>Phát hiện âm nhạc mới và xu hướng</p>
+        <h1>Bảng xếp hạng</h1>
+        <p>Top bài hát phổ biến nhất hiện nay</p>
       </div>
 
       {/* Trending Section */}
-      <section className="discover-section">
+      <section className="rank-section">
         <div className="section-header">
           <h2>Trending Now 🔥</h2>
           <button className="btn-view-all">Xem tất cả</button>
@@ -63,7 +63,7 @@ function DiscoverPage() {
               song={{
                 id: song.songId,
                 title: song.title,
-                artist: 'Unknown Artist', // Cần fetch artist
+                artist: 'Unknown Artist',
                 coverUrl: song.avatar || '/default-cover.png'
               }} 
             />
@@ -72,7 +72,7 @@ function DiscoverPage() {
       </section>
 
       {/* New Releases */}
-      <section className="discover-section">
+      <section className="rank-section">
         <div className="section-header">
           <h2>Mới phát hành ✨</h2>
         </div>
@@ -91,33 +91,8 @@ function DiscoverPage() {
         </div>
       </section>
 
-      {/* Moods & Genres */}
-      <section className="discover-section">
-        <div className="section-header">
-          <h2>Tâm trạng & Thể loại</h2>
-        </div>
-        <div className="moods-grid">
-          {[
-            { name: 'Chill', color: '#4ECDC4', icon: '☕' },
-            { name: 'Workout', color: '#FF6B6B', icon: '💪' },
-            { name: 'Focus', color: '#118AB2', icon: '🎯' },
-            { name: 'Party', color: '#9D4EDD', icon: '🎉' },
-            { name: 'Sad', color: '#06D6A0', icon: '☔' },
-            { name: 'Happy', color: '#FFD166', icon: '😊' },
-          ].map(mood => (
-            <div 
-              key={mood.name}
-              className="mood-card"
-              style={{ backgroundColor: `${mood.color}20`, borderColor: mood.color }}
-            >
-              <span className="mood-icon">{mood.icon}</span>
-              <h3>{mood.name}</h3>
-            </div>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }
 
-export default DiscoverPage;
+export default RankPage;
