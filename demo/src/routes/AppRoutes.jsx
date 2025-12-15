@@ -13,6 +13,7 @@ import AlbumsPage from '../pages/AlbumsPage';
 import GenresPage from '../pages/GenresPage';
 import GenrePage from '../pages/GenrePage';
 import ProfilePage from '../pages/ProfilePage';
+import DashboardPage from '../pages/admin/DashboardPage'; // Import DashboardPage cho admin
 
 // Auth pages
 import LoginPage from '../pages/LoginPage';
@@ -35,7 +36,7 @@ function AppRoutes() {
         <Route path="genres" element={<GenresPage />} />
         <Route path="genre/:id" element={<GenrePage />} />
         <Route path="profile" element={<ProfilePage />} />
-
+        <Route path="admin/dashboard" element={<DashboardPage />} /> {/* Route cho Admin Dashboard */}
       </Route>
 
       <Route path="login" element={<LoginPage />} />

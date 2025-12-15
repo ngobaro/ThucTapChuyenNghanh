@@ -1,7 +1,6 @@
 // FILE: demo/src/components/layout/Header.jsx
-
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, User, LogIn, LogOut, LayoutDashboard, User as UserIcon, X, Music } from 'lucide-react';
+import { Search, User, LogIn, LogOut, LayoutDashboard, User as UserIcon, X, Music, Settings } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import { logout } from '../../services/authService';
@@ -24,7 +23,7 @@ function Header() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-    
+
     if (token && userData) {
       try {
         setIsLoggedIn(true);
@@ -69,20 +68,18 @@ function Header() {
     return () => clearTimeout(searchTimer);
   }, [searchQuery]);
 
-  // GỌI API TÌM KIẾM - FIX LỖI 500
   const performSearch = async (query) => {
     if (!query.trim()) return;
-    
+
     setIsSearching(true);
     try {
       console.log('🔍 Searching for:', query);
-      
-      // THỬ 1: Tìm kiếm với endpoint /songs (có thể không có search param)
+
       let response;
       try {
         // Thử với search param trước
         response = await api.get('/songs', {
-          params: { 
+          params: {
             search: query,
             limit: 8
           }
@@ -92,47 +89,41 @@ function Header() {
         console.log('⚠️ Search param failed, trying without search param...');
         // Thử không có search param, lọc ở frontend
         response = await api.get('/songs', {
-          params: { 
-            limit: 20 // Lấy nhiều hơn để lọc ở frontend
+          params: {
+            limit: 20
           }
         });
         console.log('✅ API Response (all songs):', response.data);
       }
-      
-      // Xử lý response theo nhiều định dạng có thể
+
       let songs = extractSongsFromResponse(response.data);
       console.log('📊 Extracted songs:', songs.length);
-      
-      // Lọc bài hát có tên gần đúng với query (ở frontend)
+
       const filteredSongs = songs.filter(song => {
         const title = (song.title || '').toLowerCase();
         const artist = (song.artist || '').toLowerCase();
         const queryLower = query.toLowerCase();
-        
+
         return title.includes(queryLower) || artist.includes(queryLower);
-      }).slice(0, 6); // Giới hạn 6 kết quả
-      
+      }).slice(0, 6);
+
       console.log(`🎯 Filtered results: ${filteredSongs.length} songs match "${query}"`);
-      
+
       setSearchResults(filteredSongs);
       setShowSearchResults(true);
-      
+
     } catch (error) {
       console.error('❌ Search songs error:', error);
-      
-      // Fallback: mock data để test UI
+
       const mockSongs = [
         { id: 1, title: 'Shape of You', artist: 'Ed Sheeran' },
         { id: 2, title: 'Blinding Lights', artist: 'The Weeknd' },
         { id: 3, title: 'Dance Monkey', artist: 'Tones and I' },
-        { id: 4, title: 'Someone You Loved', artist: 'Lewis Capaldi' },
-        { id: 5, title: 'Bad Guy', artist: 'Billie Eilish' },
-        { id: 6, title: 'Rockstar', artist: 'Post Malone' },
-      ].filter(song => 
+      ].filter(song =>
         song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         song.artist.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      
+
       setSearchResults(mockSongs);
       setShowSearchResults(true);
     } finally {
@@ -140,13 +131,12 @@ function Header() {
     }
   };
 
-  // Helper function để extract songs từ response
   const extractSongsFromResponse = (data) => {
     let songs = [];
-    
+
     if (Array.isArray(data)) {
       songs = data;
-    } 
+    }
     else if (data.result && Array.isArray(data.result)) {
       songs = data.result;
     }
@@ -156,11 +146,7 @@ function Header() {
     else if (data.songs && Array.isArray(data.songs)) {
       songs = data.songs;
     }
-    else if (data.items && Array.isArray(data.items)) {
-      songs = data.items;
-    }
     else {
-      // Thử tìm bất kỳ array nào trong object
       for (const key in data) {
         if (Array.isArray(data[key])) {
           songs = data[key];
@@ -168,7 +154,7 @@ function Header() {
         }
       }
     }
-    
+
     return songs;
   };
 
@@ -182,10 +168,7 @@ function Header() {
   };
 
   const handleSearchItemClick = (song) => {
-    // TODO: Điều hướng đến trang bài hát
     console.log('Song clicked:', song);
-    // Tạm thời đi đến trang chi tiết bài hát
-    // navigate(`/song/${song.id}`);
     setShowSearchResults(false);
     setSearchQuery('');
   };
@@ -193,16 +176,29 @@ function Header() {
   const handlePlaySong = (song, e) => {
     e.stopPropagation();
     console.log('Play song:', song);
-    // TODO: Implement play song immediately
     setShowSearchResults(false);
     setSearchQuery('');
   };
 
+  // SỬA: Luôn hiển thị dropdown khi click user menu
   const handleToggleMenu = () => {
-    if (userRole === 'ADMIN') {
-      setShowDropdown(!showDropdown);
-    } else {
-      navigate('/profile');
+    setShowDropdown(!showDropdown);
+  };
+
+  const handleMenuClick = (option) => {
+    setShowDropdown(false);
+    switch (option) {
+      case 'profile':
+        navigate('/profile');
+        break;
+      case 'dashboard':
+        navigate('/admin/dashboard');
+        break;
+      case 'settings':
+        navigate('/settings');
+        break;
+      default:
+        break;
     }
   };
 
@@ -215,7 +211,7 @@ function Header() {
   const handleLogout = async () => {
     try {
       await logout();
-    } catch {}
+    } catch { }
     localStorage.clear();
     setIsLoggedIn(false);
     setShowDropdown(false);
@@ -242,8 +238,8 @@ function Header() {
             autoComplete="off"
           />
           {searchQuery && (
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="clear-search-btn"
               onClick={handleClearSearch}
             >
@@ -260,15 +256,14 @@ function Header() {
               <h4>Bài hát gần đúng</h4>
               <span className="result-count">{searchResults.length} kết quả</span>
             </div>
-            
+
             <div className="search-results-list">
               {searchResults.map((song, index) => {
-                // FIX DUPLICATE KEY: Sử dụng index + id hoặc index nếu id undefined
                 const uniqueKey = song.id ? `song-${song.id}` : `song-${index}-${song.title}`;
-                
+
                 return (
-                  <div 
-                    key={uniqueKey} // ĐẢM BẢO KEY DUY NHẤT
+                  <div
+                    key={uniqueKey}
                     className="search-result-item"
                     onClick={() => handleSearchItemClick(song)}
                   >
@@ -283,7 +278,7 @@ function Header() {
                         {song.artist || 'Nghệ sĩ không xác định'}
                       </div>
                     </div>
-                    <button 
+                    <button
                       className="play-song-btn"
                       onClick={(e) => handlePlaySong(song, e)}
                       title="Phát ngay"
@@ -294,9 +289,9 @@ function Header() {
                 );
               })}
             </div>
-            
+
             <div className="search-results-footer">
-              <button 
+              <button
                 className="view-all-btn"
                 onClick={() => {
                   navigate(`/discover?search=${encodeURIComponent(searchQuery)}`);
@@ -308,8 +303,7 @@ function Header() {
             </div>
           </div>
         )}
-        
-        {/* Hiển thị khi không có kết quả */}
+
         {showSearchResults && searchQuery && searchResults.length === 0 && !isSearching && (
           <div className="search-results-dropdown">
             <div className="no-results">
@@ -322,31 +316,53 @@ function Header() {
 
       <div className="header-right">
         {isLoggedIn ? (
-          <>
-            <div className="user-menu" onClick={handleToggleMenu} ref={dropdownRef}>
-              <User size={22} />
-              <span>{userName}</span>
+          <div className="user-menu-container" ref={dropdownRef}>
+            <div
+              className="user-menu"
+              onClick={handleToggleMenu}
+            >
+              <div className="user-avatar">
+                <User size={20} />
+              </div>
+              <span className="user-name">{userName}</span>
+              {userRole === 'ADMIN' && (
+                <span className="admin-badge">ADMIN</span>
+              )}
             </div>
 
-            {userRole === 'ADMIN' && showDropdown && (
+            {showDropdown && (
               <div className="dropdown-menu">
-                <div className="dropdown-item" onClick={() => navigate('/dashboard')}>
-                  <LayoutDashboard size={16} />
-                  <span>Dashboard</span>
-                </div>
-
-                <div className="dropdown-item" onClick={() => navigate('/profile')}>
+                <div
+                  className="dropdown-item"
+                  onClick={() => handleMenuClick('profile')}
+                >
                   <UserIcon size={16} />
                   <span>Profile</span>
                 </div>
+
+                {userRole === 'ADMIN' && (
+                  <>
+                    <div
+                      className="dropdown-item admin-item"
+                      onClick={() => handleMenuClick('dashboard')}
+                    >
+                      <LayoutDashboard size={16} />
+                      <span>Dashboard (Admin)</span>
+                    </div>
+                    <div className="dropdown-divider"></div>
+                  </>
+                )}
+
+                <div
+                  className="dropdown-item logout-item"
+                  onClick={handleLogout}
+                >
+                  <LogOut size={16} />
+                  <span>Đăng xuất</span>
+                </div>
               </div>
             )}
-
-            <button className="btn-logout" onClick={handleLogout}>
-              <LogOut size={18} />
-              Đăng xuất
-            </button>
-          </>
+          </div>
         ) : (
           <>
             <Link to="/login" className="btn-auth">

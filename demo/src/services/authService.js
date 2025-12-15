@@ -4,38 +4,146 @@ import { API_ENDPOINTS } from '../utils/constants';
 
 export const login = async (username, password) => {
   try {
+    console.log('🔐 Attempting login with:', { username });
+    
     const response = await api.post(API_ENDPOINTS.LOGIN, {
       username,
       password
     });
-    console.log('✅ Login response full:', response.data);
-
+    
+    console.log('✅ Login API Response FULL:', response);
+    console.log('✅ Login response.data:', response.data);
+    
     const data = response.data.result || response.data;
-    let token = data.token || data.access_token;
+    console.log('✅ Extracted data:', data);
+    
+    let token = data.token || data.access_token || data.accessToken;
     let refreshToken = data.refreshToken || data.refresh_token;
-
+    
+    console.log('✅ Token found:', token ? 'YES' : 'NO');
+    console.log('✅ Token value:', token);
+    console.log('✅ Refresh token:', refreshToken);
+    
     if (!token || !token.includes('.')) {
+      console.error('❌ Invalid token format');
       throw new Error('Invalid token received from backend');
     }
-
+    
+    // DEBUG: Check all possible role fields
+    console.log('🔍 Checking role fields in data:');
+    console.log('  - data.role:', data.role);
+    console.log('  - data.user?.role:', data.user?.role);
+    console.log('  - data.result?.role:', data.result?.role);
+    console.log('  - data.authorities:', data.authorities);
+    console.log('  - data.scope:', data.scope);
+    console.log('  - All keys in data:', Object.keys(data));
+    
+    // Try to find role from various possible locations
+    let userRole = 'USER';
+    
+    // Method 1: Direct role field
+    if (data.role) {
+      userRole = data.role;
+    }
+    // Method 2: Nested in user object
+    else if (data.user && data.user.role) {
+      userRole = data.user.role;
+    }
+    // Method 3: From authorities array
+    else if (data.authorities && Array.isArray(data.authorities)) {
+      const adminAuthority = data.authorities.find(auth => 
+        auth.includes('ADMIN') || auth.includes('ROLE_ADMIN')
+      );
+      if (adminAuthority) {
+        userRole = 'ADMIN';
+      }
+    }
+    // Method 4: Check if username is admin (for testing)
+    else if (username.toLowerCase().includes('admin')) {
+      userRole = 'ADMIN';
+      console.log('⚠️  Assuming ADMIN role based on username');
+    }
+    
+    console.log(`✅ Determined user role: ${userRole}`);
+    
     // ✅ LƯU TOKEN VÀO LOCALSTORAGE
     localStorage.setItem('token', token);
-    console.log('✅ Token saved to localStorage:', token);
     
     if (refreshToken) {
       localStorage.setItem('refreshToken', refreshToken);
     }
     
-    localStorage.setItem('user', JSON.stringify({ 
-      username, 
-      role: data.role || 'USER' 
-    }));
+    // Lưu user info với role đã xác định
+    const userInfo = {
+      username,
+      role: userRole,
+      // Thêm các field khác nếu có
+      id: data.userId || data.id || data.user?.id,
+      email: data.email || data.user?.email
+    };
+    
+    console.log('✅ Saving user info to localStorage:', userInfo);
+    
+    localStorage.setItem('user', JSON.stringify(userInfo));
+    
+    // Nếu có userId, lưu riêng
+    if (userInfo.id) {
+      localStorage.setItem('userId', userInfo.id);
+    }
 
-    return { success: true, data, token };
+    return { 
+      success: true, 
+      data, 
+      token,
+      user: userInfo
+    };
+    
   } catch (error) {
-    console.error('❌ Login error:', error.response?.data || error.message);
-    const errorMsg = error.response?.data?.message || 'Unauthenticated - Username hoặc password không đúng!';
-    return { success: false, error: errorMsg };
+    console.error('❌ Login error details:');
+    console.error('  - Error message:', error.message);
+    console.error('  - Error response:', error.response?.data);
+    console.error('  - Error status:', error.response?.status);
+    
+    const errorMsg = error.response?.data?.message || 
+                    error.response?.data?.error || 
+                    error.message || 
+                    'Username hoặc password không đúng!';
+    
+    return { 
+      success: false, 
+      error: errorMsg,
+      details: error.response?.data
+    };
+  }
+};
+
+// Hàm helper để kiểm tra role từ localStorage
+export const getUserRole = () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return 'USER';
+    
+    const user = JSON.parse(userStr);
+    return user.role?.toUpperCase() || 'USER';
+  } catch (error) {
+    console.error('Error getting user role:', error);
+    return 'USER';
+  }
+};
+
+// Hàm kiểm tra có phải admin không
+export const isAdmin = () => {
+  return getUserRole() === 'ADMIN';
+};
+
+// Hàm lấy thông tin user hiện tại
+export const getCurrentUser = () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return null;
   }
 };
 
