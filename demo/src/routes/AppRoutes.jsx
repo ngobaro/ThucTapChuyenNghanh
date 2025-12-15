@@ -47,6 +47,7 @@ function AppRoutes() {
       
       {/* 404 page */}
       <Route path="*" element={<NotFoundPage />} />
+
     </Routes>
   );
 }
