@@ -1,162 +1,153 @@
 // FILE: demo/src/pages/HomePage.jsx
-
 import { useEffect, useState } from 'react';
 import SongCard from '../components/music/SongCard';
 import SongList from '../components/music/SongList';
 import { getAllSongs } from '../services/songService';
 import api from '../services/api';
+import { API_ENDPOINTS } from '../utils/constants';
 import './HomePage.css';
 
 function HomePage() {
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [artistCache, setArtistCache] = useState({}); // Cache cho artist
+  const [artists, setArtists] = useState({});
 
   useEffect(() => {
-    loadSongs();
+    loadData();
   }, []);
 
-  // Function để fetch artist name từ ID
-  const getArtistName = async (artistId) => {
-    // Kiểm tra cache trước
-    if (artistCache[artistId]) {
-      return artistCache[artistId];
-    }
-    
+  // Lấy tất cả artists một lần để tránh multiple requests
+  const loadArtists = async () => {
     try {
-      const artistResponse = await api.get(`/artists/${artistId}`);
-      console.log(`Artist response for ID ${artistId}:`, artistResponse.data);
+      const response = await api.get(API_ENDPOINTS.ARTISTS);
+      console.log('Artists response:', response.data);
       
-      let artistName = 'Unknown Artist';
+      const artistsMap = {};
+      let artistsData = [];
       
-      // QUAN TRỌNG: API trả về artistname, không phải name
-      if (artistResponse.data) {
-        // Có thể response trực tiếp là object artist
-        if (artistResponse.data.artistname) {
-          artistName = artistResponse.data.artistname;
-        } 
-        // Hoặc response có cấu trúc { result: { artistname: ... } }
-        else if (artistResponse.data.result?.artistname) {
-          artistName = artistResponse.data.result.artistname;
-        }
-        // Hoặc có trường name
-        else if (artistResponse.data.name) {
-          artistName = artistResponse.data.name;
-        }
-        else if (artistResponse.data.result?.name) {
-          artistName = artistResponse.data.result.name;
-        }
+      if (Array.isArray(response.data)) {
+        artistsData = response.data;
+      } else if (response.data.result && Array.isArray(response.data.result)) {
+        artistsData = response.data.result;
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        artistsData = response.data.data;
       }
       
-      console.log(`Extracted artist name for ID ${artistId}: ${artistName}`);
+      artistsData.forEach(artist => {
+        const artistId = artist.idartist || artist.id;
+        const artistName = artist.artistname || artist.name || 'Unknown Artist';
+        artistsMap[artistId] = artistName;
+      });
       
-      // Lưu vào cache
-      setArtistCache(prev => ({
-        ...prev,
-        [artistId]: artistName
-      }));
-      
-      return artistName;
+      console.log('Artists map:', artistsMap);
+      return artistsMap;
     } catch (err) {
-      console.warn(`Could not fetch artist ${artistId}:`, err.message);
-      return 'Unknown Artist';
+      console.warn('Error loading artists:', err);
+      return {};
     }
   };
 
-  const loadSongs = async () => {
+  // Lấy artist-song relationships
+  const loadArtistSongs = async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.ARTIST_SONGS.BASE);
+      console.log('Artist songs response:', response.data);
+      
+      const artistSongMap = {};
+      let data = [];
+      
+      if (Array.isArray(response.data)) {
+        data = response.data;
+      } else if (response.data.result && Array.isArray(response.data.result)) {
+        data = response.data.result;
+      }
+      
+      data.forEach(item => {
+        const songId = item.idsong;
+        const artistId = item.idartist;
+        
+        if (songId && artistId) {
+          if (!artistSongMap[songId]) {
+            artistSongMap[songId] = [];
+          }
+          artistSongMap[songId].push(artistId);
+        }
+      });
+      
+      console.log('Artist song map:', artistSongMap);
+      return artistSongMap;
+    } catch (err) {
+      console.warn('Error loading artist songs:', err);
+      return {};
+    }
+  };
+
+  const loadData = async () => {
     try {
       setLoading(true);
-      const response = await getAllSongs();
-      console.log('API response structure:', response);
       
-      const songsData = response.result || [];
-      console.log('Raw songs data:', songsData);
+      // Load song, artists, và artist-songs parallel
+      const [songsResponse, artistsMap, artistSongMap] = await Promise.all([
+        getAllSongs(),
+        loadArtists(),
+        loadArtistSongs()
+      ]);
       
-      // Tối ưu: Lấy tất cả artist IDs trước
-      const artistPromises = songsData.map(async (song) => {
-        const songId = song.songId;
-        
-        try {
-          const artistSongResponse = await api.get(`/artistsongs/song/${songId}`);
-          console.log(`ArtistSong for song ${songId}:`, artistSongResponse.data);
-          
-          if (artistSongResponse.data?.result && artistSongResponse.data.result.length > 0) {
-            const artistSong = artistSongResponse.data.result[0];
-            return {
-              songId,
-              artistId: artistSong.idartist
-            };
-          }
-        } catch (err) {
-          console.warn(`No artist for song ${songId}:`, err.message);
-        }
-        return { songId, artistId: null };
-      });
+      console.log('All data loaded:', { songsResponse, artistsMap, artistSongMap });
       
-      const artistLinks = await Promise.all(artistPromises);
-      console.log('Artist links:', artistLinks);
+      const songsData = Array.isArray(songsResponse) ? songsResponse : 
+                       songsResponse.result || songsResponse.data || [];
       
-      // Lấy tất cả unique artist IDs
-      const uniqueArtistIds = [...new Set(artistLinks
-        .filter(link => link.artistId)
-        .map(link => link.artistId)
-      )];
-      console.log('Unique artist IDs:', uniqueArtistIds);
-      
-      // Fetch tất cả artist names một lần
-      const artistNamePromises = uniqueArtistIds.map(async (artistId) => {
-        const name = await getArtistName(artistId);
-        return { artistId, name };
-      });
-      
-      const artistNames = await Promise.all(artistNamePromises);
-      const artistMap = {};
-      artistNames.forEach(item => {
-        artistMap[item.artistId] = item.name;
-      });
-      console.log('Artist map:', artistMap);
+      console.log('Songs data:', songsData);
       
       // Map songs với artist names
-      const songsWithArtists = songsData.map((song, index) => {
-        const artistLink = artistLinks.find(link => link.songId === song.songId);
-        const artistName = artistLink?.artistId ? 
-                          (artistMap[artistLink.artistId] || 'Unknown Artist') : 
-                          'Unknown Artist';
+      const processedSongs = songsData.map(song => {
+        const songId = song.songId || song.id;
+        const artistIds = artistSongMap[songId] || [];
+        
+        // Lấy artist names từ artistIds
+        const artistNames = artistIds
+          .map(id => artistsMap[id] || 'Unknown Artist')
+          .filter(name => name)
+          .join(', ');
+        
+        const artistName = artistNames || song.artist || 'Unknown Artist';
         
         return {
-          id: song.songId,
-          title: song.title || `Song ${index + 1}`,
+          id: songId,
+          title: song.title || 'Unknown Title',
           artist: artistName,
           album: song.idalbum || 'Single',
           duration: formatDuration(song.duration),
           coverUrl: song.avatar || '/default-cover.png',
           audioUrl: song.path || '',
-          views: song.views || '0',
-          releaseDate: song.releasedate
+          views: song.views || 0,
+          releaseDate: song.releasedate,
+          genreId: song.genreId,
+          color: getColorByGenre(song.genreId)
         };
       });
       
-      console.log('Final songs with artists:', songsWithArtists);
-      setSongs(songsWithArtists);
+      console.log('Processed songs:', processedSongs);
+      setSongs(processedSongs);
+      setError(null);
+      
     } catch (err) {
-      console.error('Error loading songs:', err);
-      setError('Không thể tải danh sách bài hát');
+      console.error('Error loading data:', err);
+      setError('Không thể tải dữ liệu. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper function to format duration
   const formatDuration = (duration) => {
     if (!duration) return '00:00';
     
     if (typeof duration === 'string') {
-      // Format: "04:12:00" -> "04:12"
       if (duration.includes(':')) {
         const parts = duration.split(':');
         if (parts.length === 3) {
-          // Bỏ phần giây
           return `${parts[0]}:${parts[1]}`;
         }
         return duration;
@@ -164,123 +155,84 @@ function HomePage() {
       return duration;
     }
     
+    // Nếu duration là số (giây)
+    if (typeof duration === 'number') {
+      const mins = Math.floor(duration / 60);
+      const secs = duration % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+    
     return '00:00';
   };
 
-  // Phiên bản đơn giản hơn nếu muốn
-  const loadSongsSimple = async () => {
-    try {
-      setLoading(true);
-      const response = await getAllSongs();
-      const songsData = response.result || [];
-      
-      // Map songs với artist (fetch tuần tự để dễ debug)
-      const songsWithArtists = [];
-      
-      for (const song of songsData) {
-        const songId = song.songId;
-        let artistName = 'Unknown Artist';
-        
-        try {
-          // 1. Lấy artist-song relationship
-          const artistSongResponse = await api.get(`/artistsongs/song/${songId}`);
-          console.log(`Song ${songId} artist data:`, artistSongResponse.data);
-          
-          if (artistSongResponse.data?.result && artistSongResponse.data.result.length > 0) {
-            const artistId = artistSongResponse.data.result[0].idartist;
-            console.log(`Found artistId ${artistId} for song ${songId}`);
-            
-            // 2. Lấy artist name
-            if (artistId) {
-              const artistResponse = await api.get(`/artists/${artistId}`);
-              console.log(`Artist ${artistId} data:`, artistResponse.data);
-              
-              // QUAN TRỌNG: Sử dụng đúng key 'artistname'
-              if (artistResponse.data?.artistname) {
-                artistName = artistResponse.data.artistname;
-              } else if (artistResponse.data?.result?.artistname) {
-                artistName = artistResponse.data.result.artistname;
-              }
-              console.log(`Artist name for song ${songId}: ${artistName}`);
-            }
-          }
-        } catch (err) {
-          console.warn(`Error processing song ${songId}:`, err.message);
-        }
-        
-        songsWithArtists.push({
-          id: songId,
-          title: song.title || 'Unknown Title',
-          artist: artistName,
-          album: song.idalbum || 'Single',
-          duration: formatDuration(song.duration),
-          coverUrl: song.avatar || '/default-cover.png',
-          audioUrl: song.path || ''
-        });
-      }
-      
-      console.log('Processed songs:', songsWithArtists);
-      setSongs(songsWithArtists);
-    } catch (err) {
-      console.error('Error loading songs:', err);
-      setError('Không thể tải danh sách bài hát');
-    } finally {
-      setLoading(false);
-    }
+  const getColorByGenre = (genreId) => {
+    const colors = {
+      1: '#1DB954', // Pop
+      2: '#FF6B6B', // Hip Hop
+      3: '#4ECDC4', // Rock
+      4: '#FF9F1C', // R&B
+      5: '#9D4EDD', // Jazz
+      6: '#06D6A0', // Electronic
+      7: '#118AB2', // Country
+      8: '#FFD166', // Indie
+    };
+    return colors[genreId] || '#666';
   };
 
   if (loading) {
     return (
-      <div className="loading-container">
+      <div className="home-page loading">
         <div className="spinner"></div>
-        <p>Đang tải bài hát...</p>
+        <p>Đang tải dữ liệu...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="error-container">
-        <p>{error}</p>
-        <button className="btn-retry" onClick={loadSongs}>
-          Thử lại
-        </button>
-      </div>
-    );
-  }
-
-  if (songs.length === 0) {
-    return (
-      <div className="empty-state">
-        <p>Chưa có bài hát nào</p>
+      <div className="home-page error">
+        <div className="error-content">
+          <p>❌ {error}</p>
+          <button className="btn-retry" onClick={loadData}>
+            Thử lại
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="home-page">
-      {/* Hero Section */}
       <section className="hero-section">
         <h1>🎵 Chào mừng đến Music Web</h1>
         <p>Khám phá hàng triệu bài hát yêu thích của bạn</p>
+        <div className="stats">
+          <span className="stat-item">
+            <strong>{songs.length}</strong> bài hát
+          </span>
+          <span className="stat-item">
+            <strong>•</strong>
+          </span>
+          <span className="stat-item">
+            <strong>{new Set(songs.map(s => s.artist)).size}</strong> nghệ sĩ
+          </span>
+        </div>
       </section>
 
-      {/* Trending Cards - Grid Layout */}
-      {/* <section className="section">
-        <h2>Trending Now 🔥</h2>
+      <section className="trending-section">
+        <h2>🔥 Trending Now</h2>
         <div className="song-grid">
-          {songs.slice(0, 6).map(song => (
-            <SongCard 
-              key={song.id} 
-              song={song}
-            />
+          {songs.slice(0, 8).map(song => (
+            <SongCard key={song.id} song={song} />
           ))}
         </div>
-      </section> */}
+      </section>
 
-      {/* All Songs - Table Layout */}
-      <section className="section">
-        <h2>Tất cả bài hát</h2>
+      <section className="all-songs-section">
+        <div className="section-header">
+          <h2>🎵 Tất cả bài hát</h2>
+          <span className="song-count">{songs.length} bài hát</span>
+        </div>
         <SongList songs={songs} />
       </section>
     </div>

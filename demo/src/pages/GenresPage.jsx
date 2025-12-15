@@ -1,45 +1,110 @@
 // FILE: demo/src/pages/GenresPage.jsx
-
-import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
+import { API_ENDPOINTS } from '../utils/constants';
 import './GenresPage.css';
 
 function GenresPage() {
-  const navigate = useNavigate();
   const [genres, setGenres] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch genres từ API
-    const fetchGenres = async () => {
-      try {
-        setLoading(true);
-        // Dữ liệu mẫu
-        const mockGenres = [
-          { id: 1, name: 'Pop', count: 245, color: '#1DB954', description: 'Nhạc Pop phổ biến' },
-          { id: 2, name: 'Hip Hop', count: 189, color: '#FF6B6B', description: 'Hip Hop đỉnh cao' },
-          { id: 3, name: 'Rock', count: 167, color: '#4ECDC4', description: 'Rock mạnh mẽ' },
-          { id: 4, name: 'EDM', count: 156, color: '#9D4EDD', description: 'EDM sôi động' },
-          { id: 5, name: 'R&B', count: 132, color: '#FF9F1C', description: 'R&B nhẹ nhàng' },
-          { id: 6, name: 'Acoustic', count: 98, color: '#06D6A0', description: 'Acoustic tinh tế' },
-          { id: 7, name: 'Jazz', count: 87, color: '#118AB2', description: 'Jazz tinh tế' },
-          { id: 8, name: 'Country', count: 76, color: '#FFD166', description: 'Country dân dã' },
-          { id: 9, name: 'Classical', count: 65, color: '#EF476F', description: 'Nhạc cổ điển' },
-          { id: 10, name: 'Reggae', count: 54, color: '#06D6A0', description: 'Reggae thoải mái' },
-          { id: 11, name: 'Indie', count: 43, color: '#7209B7', description: 'Indie độc lập' },
-          { id: 12, name: 'Metal', count: 32, color: '#333333', description: 'Metal mạnh mẽ' },
-        ];
-        
-        setGenres(mockGenres);
-      } catch (error) {
-        console.error('Error fetching genres:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchGenres();
+    loadGenres();
   }, []);
+
+  const loadGenres = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get(API_ENDPOINTS.GENRES);
+      console.log('Genres response:', response.data);
+      
+      let genresData = [];
+      
+      if (Array.isArray(response.data)) {
+        genresData = response.data;
+      } else if (response.data.result && Array.isArray(response.data.result)) {
+        genresData = response.data.result;
+      }
+      
+      // Get song count for each genre
+      const genresWithCounts = await Promise.all(
+        genresData.map(async (genre) => {
+          try {
+            const songsResponse = await api.get(API_ENDPOINTS.GENRE_SONGS(genre.idgenre || genre.id));
+            let songs = [];
+            
+            if (Array.isArray(songsResponse.data)) {
+              songs = songsResponse.data;
+            } else if (songsResponse.data.result && Array.isArray(songsResponse.data.result)) {
+              songs = songsResponse.data.result;
+            } else if (songsResponse.data.data && Array.isArray(songsResponse.data.data)) {
+              songs = songsResponse.data.data;
+            }
+            
+            return {
+              id: genre.idgenre || genre.id,
+              name: genre.genrename || genre.name || 'Unknown Genre',
+              count: songs.length,
+              color: getColorByGenreId(genre.idgenre || genre.id),
+              description: getDescriptionByGenre(genre.genrename || genre.name)
+            };
+          } catch (error) {
+            console.error(`Error loading songs for genre ${genre.idgenre}:`, error);
+            return {
+              id: genre.idgenre || genre.id,
+              name: genre.genrename || genre.name || 'Unknown Genre',
+              count: 0,
+              color: getColorByGenreId(genre.idgenre || genre.id),
+              description: getDescriptionByGenre(genre.genrename || genre.name)
+            };
+          }
+        })
+      );
+      
+      setGenres(genresWithCounts);
+      
+    } catch (error) {
+      console.error('Error loading genres:', error);
+      // Fallback data
+      setGenres([
+        { id: 1, name: 'Pop', count: 245, color: '#1DB954', description: 'Nhạc Pop phổ biến' },
+        { id: 2, name: 'Hip Hop', count: 189, color: '#FF6B6B', description: 'Hip Hop đỉnh cao' },
+        { id: 3, name: 'Rock', count: 167, color: '#4ECDC4', description: 'Rock mạnh mẽ' },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getColorByGenreId = (id) => {
+    const colors = {
+      1: '#1DB954',
+      2: '#FF6B6B', 
+      3: '#4ECDC4',
+      4: '#FF9F1C',
+      5: '#9D4EDD',
+      6: '#06D6A0',
+      7: '#118AB2',
+      8: '#FFD166'
+    };
+    return colors[id] || '#666';
+  };
+
+  const getDescriptionByGenre = (name) => {
+    const descriptions = {
+      'Pop': 'Nhạc Pop phổ biến nhất hiện nay',
+      'Hip Hop': 'Hip Hop với beat mạnh mẽ',
+      'Rock': 'Rock cá tính và sôi động',
+      'R&B': 'R&B nhẹ nhàng, sâu lắng',
+      'Jazz': 'Jazz tinh tế và nghệ thuật',
+      'Electronic': 'EDM sôi động cho các bữa tiệc',
+      'Country': 'Country dân dã, gần gũi',
+      'Indie': 'Indie độc lập và sáng tạo'
+    };
+    return descriptions[name] || 'Khám phá âm nhạc theo thể loại này';
+  };
 
   const handleGenreClick = (genreId) => {
     navigate(`/genre/${genreId}`);
@@ -80,6 +145,12 @@ function GenresPage() {
           </div>
         ))}
       </div>
+      
+      {genres.length === 0 && (
+        <div className="empty-state">
+          <p>Chưa có thể loại nào</p>
+        </div>
+      )}
     </div>
   );
 }

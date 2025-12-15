@@ -29,12 +29,15 @@ function AppRoutes() {
         <Route path="favorites" element={<FavoritesPage />} />
         <Route path="recent" element={<RecentPage />} />
         <Route path="albums" element={<AlbumsPage />} />
+        <Route path="album/:id" element={<GenrePage />} />
+        <Route path="playlists" element={<LibraryPage />} />
+        <Route path="playlist/:id" element={<GenrePage />} />
         <Route path="genres" element={<GenresPage />} />
         <Route path="genre/:id" element={<GenrePage />} />
         <Route path="profile" element={<ProfilePage />} />
-        <Route path="playlists" element={<LibraryPage />} />
+
       </Route>
-      
+
       <Route path="login" element={<LoginPage />} />
       <Route path="register" element={<RegisterPage />} />
       <Route path="*" element={<NotFoundPage />} />
