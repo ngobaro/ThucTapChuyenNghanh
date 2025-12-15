@@ -1,13 +1,13 @@
-// FILE: src/components/music/SongList.jsx
-// Thay thế toàn bộ nội dung file này
+// FILE: demo/src/components/music/SongList.jsx
 
-import { Play, Heart, MoreVertical } from 'lucide-react';
+import { Play, Heart, MoreVertical, Loader2 } from 'lucide-react';
 import { usePlayer } from '../../context/PlayerContext';
 import { formatTime } from '../../utils/formatTime';
+import { useAudioDuration } from '../../hooks/useAudioDuration';
 import './SongList.css';
 
 function SongList({ songs, title }) {
-  const { playSong, playQueue, currentSong } = usePlayer();
+  const { playQueue, currentSong } = usePlayer();
 
   const handlePlaySong = (song, index) => {
     playQueue(songs, index);
@@ -39,7 +39,13 @@ function SongList({ songs, title }) {
         {/* Table Rows */}
         {songs.map((song, index) => {
           const isCurrentSong = currentSong && currentSong.id === song.id;
+          // Sử dụng hook để lấy duration thực tế
+          const { duration: actualDuration, loading } = useAudioDuration(song.audioUrl);
           
+          // Ưu tiên duration thực tế, nếu không có thì dùng từ database
+          const displayDuration = actualDuration > 0 ? actualDuration : 
+                                (song.duration ? parseDuration(song.duration) : 0);
+
           return (
             <div 
               key={song.id || index} 
@@ -73,17 +79,14 @@ function SongList({ songs, title }) {
               </span>
               
               <span className="col-duration">
-                {formatTime(song.duration)}
+                {loading ? (
+                  <Loader2 size={14} className="spinner" />
+                ) : (
+                  formatTime(displayDuration)
+                )}
               </span>
               
               <div className="col-actions" onClick={(e) => e.stopPropagation()}>
-                <button 
-                  className="btn-action"
-                  onClick={() => handlePlaySong(song, index)}
-                  title="Phát"
-                >
-                  <Play size={18} />
-                </button>
                 <button 
                   className="btn-action"
                   title="Yêu thích"
@@ -104,5 +107,27 @@ function SongList({ songs, title }) {
     </div>
   );
 }
+
+// Helper function để parse duration từ database
+const parseDuration = (duration) => {
+  if (typeof duration === 'number') {
+    return duration; // Đã là seconds
+  }
+  
+  if (typeof duration === 'string') {
+    if (duration.includes(':')) {
+      const parts = duration.split(':');
+      if (parts.length === 2) {
+        const minutes = parseInt(parts[0]) || 0;
+        const seconds = parseInt(parts[1]) || 0;
+        return minutes * 60 + seconds;
+      }
+    }
+    // Nếu là string số
+    return parseFloat(duration) || 0;
+  }
+  
+  return 0;
+};
 
 export default SongList;

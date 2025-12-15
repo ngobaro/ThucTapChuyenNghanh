@@ -1,5 +1,6 @@
 // FILE: demo/src/components/layout/PlayerBar.jsx
 
+import { Heart, MoreVertical } from 'lucide-react'; // Thêm import icons
 import { usePlayer } from '../../context/PlayerContext';
 import PlayerControls from '../music/PlayerControls';
 import ProgressBar from '../music/ProgressBar';
@@ -35,6 +36,21 @@ function PlayerBar() {
             <div className="song-details">
               <h4 className="song-title">{currentSong.title}</h4>
               <p className="song-artist">{currentSong.artist || 'Unknown Artist'}</p>
+            </div>
+            {/* Hai nút action */}
+            <div className="song-actions">
+              <button 
+                className="btn-action"
+                title="Yêu thích"
+              >
+                <Heart size={18} />
+              </button>
+              <button 
+                className="btn-action"
+                title="Tùy chọn"
+              >
+                <MoreVertical size={18} />
+              </button>
             </div>
           </div>
         </div>

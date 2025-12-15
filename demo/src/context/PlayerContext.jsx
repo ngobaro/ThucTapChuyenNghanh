@@ -11,30 +11,65 @@ export function PlayerProvider({ children }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(0.8); // Thay đổi từ 1 xuống 0.8
+  const [volume, setVolume] = useState(0.8);
   const [isMuted, setIsMuted] = useState(false);
   const [queue, setQueue] = useState([]);
   const [queueIndex, setQueueIndex] = useState(0);
-  const [repeat, setRepeat] = useState(false); // false | 'one' | 'all'
+  const [repeat, setRepeat] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [shuffledQueue, setShuffledQueue] = useState([]);
   const [originalQueue, setOriginalQueue] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Khởi tạo audio
+  // Khởi tạo audio với đầy đủ event listeners
   useEffect(() => {
     const audio = audioRef.current;
     
-    const updateTime = () => setCurrentTime(audio.currentTime || 0);
-    const updateDuration = () => setDuration(audio.duration || 0);
+    const updateTime = () => {
+      if (audio.currentTime) {
+        setCurrentTime(audio.currentTime);
+      }
+    };
+    
+    // THÊM: Xử lý duration từ nhiều nguồn
+    const updateDuration = () => {
+      if (audio.duration && audio.duration > 0 && !isNaN(audio.duration)) {
+        console.log('Duration updated:', audio.duration);
+        setDuration(audio.duration);
+      }
+    };
+    
+    const handleLoadedMetadata = () => {
+      console.log('Metadata loaded, duration:', audio.duration);
+      if (audio.duration && audio.duration > 0 && !isNaN(audio.duration)) {
+        setDuration(audio.duration);
+      }
+    };
+    
+    const handleCanPlay = () => {
+      console.log('Can play, duration:', audio.duration);
+      setIsLoading(false);
+      if (audio.duration && audio.duration > 0 && !isNaN(audio.duration) && duration === 0) {
+        setDuration(audio.duration);
+      }
+    };
+    
+    const handleWaiting = () => {
+      console.log('Audio waiting (buffering)');
+      setIsLoading(true);
+    };
+    
+    const handlePlaying = () => {
+      console.log('Audio playing');
+      setIsLoading(false);
+    };
     
     const handleEnded = () => {
       console.log('Song ended, repeat mode:', repeat);
       if (repeat === 'one') {
-        // Lặp lại 1 bài
         audio.currentTime = 0;
         audio.play().catch(console.error);
       } else {
-        // Chuyển bài tiếp theo
         nextSong();
       }
     };
@@ -42,13 +77,19 @@ export function PlayerProvider({ children }) {
     const handleError = (e) => {
       console.error('Audio error:', e);
       setIsPlaying(false);
+      setIsLoading(false);
     };
 
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
 
+    // Thêm tất cả event listeners
     audio.addEventListener('timeupdate', updateTime);
-    audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('durationchange', updateDuration);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('waiting', handleWaiting);
+    audio.addEventListener('playing', handlePlaying);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
     audio.addEventListener('play', handlePlay);
@@ -58,8 +99,13 @@ export function PlayerProvider({ children }) {
     audio.volume = volume;
 
     return () => {
+      // Remove tất cả event listeners
       audio.removeEventListener('timeupdate', updateTime);
-      audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('durationchange', updateDuration);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('waiting', handleWaiting);
+      audio.removeEventListener('playing', handlePlaying);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
       audio.removeEventListener('play', handlePlay);
@@ -80,36 +126,31 @@ export function PlayerProvider({ children }) {
     setIsMuted(!isMuted);
   }, [isMuted]);
 
-  // Toggle shuffle và tạo queue shuffled
+  // Toggle shuffle
   const toggleShuffle = useCallback(() => {
     const newShuffle = !shuffle;
     setShuffle(newShuffle);
     
     if (newShuffle && queue.length > 0) {
-      // Lưu queue gốc nếu chưa có
       if (originalQueue.length === 0) {
         setOriginalQueue([...queue]);
       }
       
-      // Tạo shuffled queue (loại trừ bài đang phát)
       const indices = Array.from({ length: queue.length }, (_, i) => i);
       const shuffled = indices
-        .filter(i => i !== queueIndex) // Loại bài đang phát
+        .filter(i => i !== queueIndex)
         .sort(() => Math.random() - 0.5);
       
-      // Thêm bài đang phát vào đầu
       shuffled.unshift(queueIndex);
       setShuffledQueue(shuffled);
-      console.log('Shuffled queue created:', shuffled);
     } else if (!newShuffle && originalQueue.length > 0) {
-      // Khôi phục queue gốc
       setQueue(originalQueue);
       setOriginalQueue([]);
       setShuffledQueue([]);
     }
   }, [shuffle, queue, queueIndex, originalQueue]);
 
-  // Play một bài hát
+  // Play một bài hát với duration reset
   const playSong = useCallback((song, songList = [], index = 0) => {
     console.log('🎵 Play song:', song);
 
@@ -120,13 +161,19 @@ export function PlayerProvider({ children }) {
 
     const audio = audioRef.current;
     
+    // Reset duration trước khi load bài mới
+    setDuration(0);
+    setIsLoading(true);
+    
     // Dừng bài hiện tại nếu đang phát
     if (audio.src && !audio.paused) {
       audio.pause();
     }
 
-    // Set bài mới
+    // Set bài mới và force reload
     audio.src = song.audioUrl;
+    audio.load(); // Force load metadata
+    
     setCurrentSong(song);
     setCurrentTime(0);
 
@@ -146,6 +193,7 @@ export function PlayerProvider({ children }) {
       .catch(err => {
         console.error('❌ Play error:', err);
         setIsPlaying(false);
+        setIsLoading(false);
       });
   }, []);
 
@@ -167,8 +215,10 @@ export function PlayerProvider({ children }) {
     if (isPlaying) {
       audio.pause();
     } else {
+      // Nếu chưa có src, load lại
       if (!audio.src && currentSong.audioUrl) {
         audio.src = currentSong.audioUrl;
+        audio.load();
       }
       
       audio.play()
@@ -190,7 +240,6 @@ export function PlayerProvider({ children }) {
     let nextIndex;
     
     if (shuffle && shuffledQueue.length > 0) {
-      // Tìm vị trí hiện tại trong shuffled queue
       const currentPos = shuffledQueue.indexOf(queueIndex);
       if (currentPos !== -1) {
         nextIndex = shuffledQueue[(currentPos + 1) % shuffledQueue.length];
@@ -201,12 +250,7 @@ export function PlayerProvider({ children }) {
       nextIndex = (queueIndex + 1) % queue.length;
     }
 
-    console.log('Next song index:', nextIndex, 'shuffle:', shuffle);
-
-    // Kiểm tra repeat mode
     if (repeat === false && nextIndex <= queueIndex && !shuffle) {
-      // Dừng nếu không repeat và đến cuối queue
-      console.log('⏹ End of queue, stopping');
       pauseSong();
       return;
     }
@@ -217,11 +261,10 @@ export function PlayerProvider({ children }) {
     }
   }, [queue, queueIndex, shuffle, shuffledQueue, repeat, pauseSong, playSong]);
 
-  // Previous song với shuffle support
+  // Previous song
   const prevSong = useCallback(() => {
     if (queue.length === 0) return;
 
-    // Nếu đã phát > 3s, restart bài hiện tại
     if (currentTime > 3) {
       audioRef.current.currentTime = 0;
       setCurrentTime(0);
@@ -242,8 +285,6 @@ export function PlayerProvider({ children }) {
     } else {
       prevIndex = (queueIndex - 1 + queue.length) % queue.length;
     }
-
-    console.log('Previous song index:', prevIndex, 'shuffle:', shuffle);
 
     if (prevIndex < queue.length) {
       setQueueIndex(prevIndex);
@@ -267,7 +308,7 @@ export function PlayerProvider({ children }) {
     setIsMuted(newVolume === 0);
   }, []);
 
-  // Play queue (danh sách bài hát)
+  // Play queue
   const playQueue = useCallback((songs, startIndex = 0) => {
     console.log('🎵 Play queue:', songs, 'start at:', startIndex);
     
@@ -277,14 +318,12 @@ export function PlayerProvider({ children }) {
     }
 
     if (startIndex >= songs.length) {
-      console.warn('⚠️ Start index out of bounds, using 0');
       startIndex = 0;
     }
 
     setQueue(songs);
     setQueueIndex(startIndex);
     
-    // Reset shuffle khi có queue mới
     if (shuffle) {
       setShuffle(false);
       setShuffledQueue([]);
@@ -300,7 +339,6 @@ export function PlayerProvider({ children }) {
     const currentIndex = modes.indexOf(repeat);
     const nextIndex = (currentIndex + 1) % modes.length;
     const newMode = modes[nextIndex];
-    console.log('Repeat mode changed to:', newMode);
     setRepeat(newMode);
   }, [repeat]);
 
@@ -309,7 +347,6 @@ export function PlayerProvider({ children }) {
     if (!song) return;
     
     setQueue(prev => {
-      // Kiểm tra xem bài hát đã có trong queue chưa
       if (prev.some(s => s.id === song.id)) {
         return prev;
       }
@@ -330,6 +367,7 @@ export function PlayerProvider({ children }) {
     setIsPlaying(false);
     setShuffledQueue([]);
     setOriginalQueue([]);
+    setDuration(0);
   }, []);
 
   return (
@@ -347,6 +385,7 @@ export function PlayerProvider({ children }) {
         queueIndex,
         repeat,
         shuffle,
+        isLoading,
         
         // Actions
         playSong,
@@ -369,6 +408,16 @@ export function PlayerProvider({ children }) {
         setShuffle,
         setQueue,
         setQueueIndex,
+        
+        // Helper để force update duration
+        refreshDuration: () => {
+          const audio = audioRef.current;
+          if (audio && audio.duration && audio.duration > 0) {
+            setDuration(audio.duration);
+            return audio.duration;
+          }
+          return 0;
+        }
       }}
     >
       {children}

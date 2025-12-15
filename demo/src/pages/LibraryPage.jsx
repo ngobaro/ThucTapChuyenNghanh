@@ -31,11 +31,7 @@ function LibraryPage() {
   return (
     <div className="library-page">
       <div className="library-header">
-        <h1>Thư viện của tôi</h1>
-        <button className="btn-primary">
-          <Plus size={20} />
-          Tạo Playlist
-        </button>
+        <h1>Thư viện của tôi</h1> 
       </div>
 
       <div className="library-tabs">

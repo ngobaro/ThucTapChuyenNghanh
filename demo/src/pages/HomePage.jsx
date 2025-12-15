@@ -266,7 +266,7 @@ function HomePage() {
       </section>
 
       {/* Trending Cards - Grid Layout */}
-      <section className="section">
+      {/* <section className="section">
         <h2>Trending Now 🔥</h2>
         <div className="song-grid">
           {songs.slice(0, 6).map(song => (
@@ -276,7 +276,7 @@ function HomePage() {
             />
           ))}
         </div>
-      </section>
+      </section> */}
 
       {/* All Songs - Table Layout */}
       <section className="section">

@@ -1,79 +1,181 @@
+/* FILE: demo/src/components/layout/Sidebar.css */
+
 .sidebar {
-  width: 240px;
-  background-color: var(--bg-dark);
+  width: 280px;
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border-color);
+  height: 100%;
   overflow-y: auto;
 }
 
+.sidebar-brand {
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--primary-color);
+}
+
+.brand-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(45deg, var(--primary-color), #1DB954);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .sidebar-nav {
-  padding: 20px 0;
+  flex: 1;
+  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.nav-section {
+  padding: 0 1.5rem;
+}
+
+.section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.5px;
 }
 
 .sidebar-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px 20px;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 8px;
   color: var(--text-secondary);
   text-decoration: none;
   transition: all 0.2s;
-  cursor: pointer;
+  margin-bottom: 0.25rem;
 }
 
 .sidebar-item:hover {
+  background: var(--bg-hover);
   color: var(--text-primary);
-  background-color: var(--bg-hover);
 }
 
 .sidebar-item.active {
+  background: var(--primary-light);
   color: var(--primary-color);
-  font-weight: 600;
+  font-weight: 500;
 }
 
-.sidebar-playlists {
-  padding: 20px;
-  border-top: 1px solid var(--border-color);
-  flex: 1;
-  overflow-y: auto;
+.sidebar-item svg {
+  flex-shrink: 0;
 }
 
-.create-playlist-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px;
-  background-color: var(--bg-hover);
-  border: none;
-  border-radius: 8px;
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: background-color 0.2s;
-  margin-bottom: 16px;
+/* Thể loại */
+.genres-container {
+  margin-top: 0.5rem;
 }
 
-.create-playlist-btn:hover {
-  background-color: var(--primary-color);
-}
-
-.playlist-list {
+.genres-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.25rem;
 }
 
-.playlist-item {
-  padding: 8px 12px;
+.genre-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 8px;
   color: var(--text-secondary);
-  cursor: pointer;
-  border-radius: 4px;
+  text-decoration: none;
   transition: all 0.2s;
 }
 
-.playlist-item:hover {
+.genre-item:hover {
+  background: var(--bg-hover);
   color: var(--text-primary);
-  background-color: var(--bg-hover);
+}
+
+.genre-item.active {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.genre-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.genre-name {
+  flex: 1;
+  font-size: 0.9rem;
+}
+
+.genre-count {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  padding: 0.125rem 0.5rem;
+  border-radius: 10px;
+}
+
+.loading-genres {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 72px;
+  }
+  
+  .brand-text,
+  .section-title,
+  .sidebar-item span,
+  .genre-name,
+  .genre-count {
+    display: none;
+  }
+  
+  .brand-logo,
+  .sidebar-item,
+  .genre-item {
+    justify-content: center;
+    padding: 1rem;
+  }
+  
+  .nav-section {
+    padding: 0 0.5rem;
+  }
 }
