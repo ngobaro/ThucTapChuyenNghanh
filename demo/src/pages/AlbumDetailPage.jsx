@@ -21,6 +21,72 @@ function AlbumDetailPage() {
     }
   }, [id]);
 
+  // Lấy tất cả artists một lần để tránh multiple requests
+  const loadArtists = async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.ARTISTS);
+      console.log('Artists response:', response.data);
+      
+      const artistsMap = {};
+      let artistsData = [];
+      
+      if (Array.isArray(response.data)) {
+        artistsData = response.data;
+      } else if (response.data.result && Array.isArray(response.data.result)) {
+        artistsData = response.data.result;
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        artistsData = response.data.data;
+      }
+      
+      artistsData.forEach(artist => {
+        const artistId = artist.idartist || artist.id;
+        const artistName = artist.artistname || artist.name || 'Unknown Artist';
+        artistsMap[artistId] = artistName;
+      });
+      
+      console.log('Artists map:', artistsMap);
+      return artistsMap;
+    } catch (err) {
+      console.warn('Error loading artists:', err);
+      return {};
+    }
+  };
+
+  // Lấy artist-song relationships
+  const loadArtistSongs = async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.ARTIST_SONGS.BASE);
+      console.log('Artist songs response:', response.data);
+      
+      const artistSongMap = {};
+      let data = [];
+      
+      if (Array.isArray(response.data)) {
+        data = response.data;
+      } else if (response.data.result && Array.isArray(response.data.result)) {
+        data = response.data.result;
+      }
+      
+      data.forEach(item => {
+        const songId = item.idsong;
+        const artistId = item.idartist;
+        
+        if (songId && artistId) {
+          if (!artistSongMap[songId]) {
+            artistSongMap[songId] = [];
+          }
+          artistSongMap[songId].push(artistId);
+        }
+      });
+      
+      console.log('Artist song map:', artistSongMap);
+      return artistSongMap;
+    } catch (err) {
+      console.warn('Error loading artist songs:', err);
+      return {};
+    }
+  };
+
   const fetchAlbumData = async () => {
     try {
       setLoading(true);
@@ -31,7 +97,13 @@ function AlbumDetailPage() {
       
       let albumData = albumResponse.data.result || albumResponse.data;
       
-      // Lấy thông tin artist
+      // Load artists và artist-songs parallel
+      const [artistsMap, artistSongMap] = await Promise.all([
+        loadArtists(),
+        loadArtistSongs()
+      ]);
+      
+      // Lấy thông tin artist (main artist cho album)
       let artistName = 'Unknown Artist';
       let artistId = null;
       if (albumData.idartist) {
@@ -43,12 +115,13 @@ function AlbumDetailPage() {
           setArtist(artistData);
         } catch (artistError) {
           console.warn('Could not fetch artist info:', artistError);
+          artistName = artistsMap[artistId] || 'Unknown Artist';
         }
       }
       
-      // Lấy danh sách bài hát trong album (using artist since no direct album-song relation)
+      // Lấy danh sách bài hát trong album (sử dụng params album=id, assuming API supports)
       const songsResponse = await api.get(API_ENDPOINTS.SONGS, {
-        params: { artist: artistId }
+        params: { album: id }
       });
       
       console.log('Album songs response:', songsResponse.data);
@@ -60,16 +133,34 @@ function AlbumDetailPage() {
         songsData = songsResponse.data.result;
       }
       
-      // Format songs data
-      const formattedSongs = songsData.map(song => ({
-        id: song.songId || song.id,
-        title: song.title || 'Unknown Title',
-        artist: artistName,
-        album: albumData.albumname || albumData.title || 'Unknown Album',
-        duration: formatDuration(song.duration),
-        trackNumber: song.trackNumber || 0,
-        coverUrl: song.avatar || albumData.cover || '/default-album.jpg'
-      }));
+      // Format songs data với multi-artist mapping
+      const formattedSongs = songsData.map((song, index) => {
+        const songId = song.songId || song.id;
+        const artistIds = artistSongMap[songId] || [];
+        
+        // Lấy artist names từ artistIds
+        const artistNames = artistIds
+          .map(aId => artistsMap[aId] || 'Unknown Artist')
+          .filter(name => name)
+          .join(', ');
+        
+        const songArtist = artistNames || song.artist || artistName;
+        
+        return {
+          id: songId,
+          title: song.title || 'Unknown Title',
+          artist: songArtist,
+          album: albumData.albumname || albumData.title || 'Unknown Album',
+          duration: formatDuration(song.duration),
+          trackNumber: song.trackNumber || (index + 1),
+          coverUrl: song.avatar || albumData.cover || '/default-album.jpg',
+          audioUrl: song.path || '',
+          views: song.views || 0,
+          releaseDate: song.releasedate,
+          genreId: song.genreId,
+          color: getColorByGenre(song.genreId)
+        };
+      });
       
       // Tính tổng thời lượng
       const totalDuration = calculateTotalDuration(formattedSongs);
@@ -128,6 +219,20 @@ function AlbumDetailPage() {
     }
     
     return '00:00';
+  };
+
+  const getColorByGenre = (genreId) => {
+    const colors = {
+      1: '#1DB954', // Pop
+      2: '#FF6B6B', // Hip Hop
+      3: '#4ECDC4', // Rock
+      4: '#FF9F1C', // R&B
+      5: '#9D4EDD', // Jazz
+      6: '#06D6A0', // Electronic
+      7: '#118AB2', // Country
+      8: '#FFD166', // Indie
+    };
+    return colors[genreId] || '#666';
   };
 
   const calculateTotalDuration = (songs) => {

@@ -1,4 +1,4 @@
-// FILE: demo/src/components/music/SongList.jsx
+// FILE: demo/src/components/music/SongListRecent.jsx
 
 import { Play, Heart, MoreVertical, Loader2 } from 'lucide-react';
 import { usePlayer } from '../../context/PlayerContext';
@@ -7,21 +7,21 @@ import { useAudioDuration } from '../../hooks/useAudioDuration';
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
 import { API_ENDPOINTS } from '../../utils/constants';
-import './SongList.css';
+import './SongList.css'; // Reuse CSS, add .col-listened if needed
 
-function SongList({ songs, title }) {
+function SongListRecent({ songs, title }) {
   const { playQueue, currentSong } = usePlayer();
   const [favoriteStates, setFavoriteStates] = useState({});
   const [favoriteLoading, setFavoriteLoading] = useState({});
   const [userId, setUserId] = useState(null);
   const [favoritesLoaded, setFavoritesLoaded] = useState(false);
-  const [isLoadingUser, setIsLoadingUser] = useState(false); // New: Loading cho fetch user
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
 
   // Fetch userId từ localStorage HOẶC /users/myInfo nếu null
   useEffect(() => {
     const fetchUserProfile = async () => {
       const storedUserId = localStorage.getItem('userId');
-      console.log('Stored userId:', storedUserId); // Debug
+      console.log('Stored userId in SongListRecent:', storedUserId); // Debug
       if (storedUserId) {
         const parsedId = Number(storedUserId);
         if (!isNaN(parsedId)) {
@@ -34,12 +34,12 @@ function SongList({ songs, title }) {
       try {
         const res = await api.get(API_ENDPOINTS.MY_INFO); // GET /users/myInfo
         const userData = res.data?.result || res.data;
-        console.log('Fetched user profile:', userData);
+        console.log('Fetched user profile in SongListRecent:', userData);
         const fetchedId = userData?.id || userData?.userId;
         if (fetchedId) {
           setUserId(Number(fetchedId));
           localStorage.setItem('userId', fetchedId.toString()); // Cache
-          console.log('Fetched userId:', fetchedId);
+          console.log('Fetched userId in SongListRecent:', fetchedId);
           // Nếu myInfo có favoriteSongs ngay, load luôn (optional)
           if (userData.favoriteSongs) {
             const favIds = userData.favoriteSongs.map(s => s.songId);
@@ -54,7 +54,7 @@ function SongList({ songs, title }) {
           console.warn('No userId in myInfo response');
         }
       } catch (err) {
-        console.error('Fetch user profile error:', err);
+        console.error('Fetch user profile error in SongListRecent:', err);
         if (err.response?.status === 401) {
           localStorage.clear();
           window.location.href = '/login';
@@ -82,7 +82,7 @@ function SongList({ songs, title }) {
 
   const loadFavorites = useCallback(async () => {
     try {
-      // Fix: Dùng USER_FAVORITES(userId) thay USER_BY_ID (trả list SongResponse)
+      // Dùng USER_FAVORITES(userId) thay USER_BY_ID (trả list SongResponse)
       const res = await api.get(API_ENDPOINTS.USER_FAVORITES(userId)); // GET /users/{userId}/favorites
       const favSongs = res.data?.result || []; // List<SongResponse>
       const favIds = favSongs.map(song => song.songId); // Extract IDs từ response
@@ -97,7 +97,7 @@ function SongList({ songs, title }) {
       setFavoriteStates(result);
       setFavoritesLoaded(true);
     } catch (err) {
-      console.error('Load favorites error:', err);
+      console.error('Load favorites error in SongListRecent:', err);
       const reset = {};
       songs.forEach(song => {
         reset[song.id] = false;
@@ -130,7 +130,7 @@ function SongList({ songs, title }) {
         [songId]: !isFavorited
       }));
     } catch (err) {
-      console.error('Toggle favorite error:', err);
+      console.error('Toggle favorite error in SongListRecent:', err);
       alert('Có lỗi khi cập nhật yêu thích');
     } finally {
       setFavoriteLoading(prev => ({ ...prev, [songId]: false }));
@@ -176,6 +176,7 @@ function SongList({ songs, title }) {
           <span className="col-title">Tiêu đề</span>
           <span className="col-artist">Nghệ sĩ</span>
           <span className="col-album">Album</span>
+          <span className="col-listened">Nghe lần cuối</span> {/* Fixed: Always show for Recent */}
           <span className="col-duration">Thời lượng</span>
           <span className="col-actions"></span>
         </div>
@@ -184,8 +185,8 @@ function SongList({ songs, title }) {
           const isCurrentSong = currentSong?.id === songId;
           const isFavorited = !!favoriteStates[songId];
           const isLoading = favoriteLoading[songId];
-          const isDisabled = isLoading; // Chỉ disable khi đang loading, không disable nếu !userId (xử lý trong toggleFavorite)
-          const { duration, loading: durationLoading } = useAudioDuration(song.audioUrl); // Fix: Rename 'loading' để tránh conflict
+          const isDisabled = isLoading;
+          const { duration, loading: durationLoading } = useAudioDuration(song.audioUrl);
           const displayDuration =
             duration > 0
               ? duration
@@ -212,6 +213,7 @@ function SongList({ songs, title }) {
               </div>
               <span className="col-artist">{song.artist}</span>
               <span className="col-album">{song.album || 'Single'}</span>
+              <span className="col-listened">{song.listenedAt}</span> {/* Fixed: Display listenedAt */}
               <span className="col-duration">
                 {durationLoading ? <Loader2 size={14} className="spinner" /> : formatTime(displayDuration)}
               </span>
@@ -220,12 +222,12 @@ function SongList({ songs, title }) {
                 onClick={(e) => e.stopPropagation()}
               >
                 <button
-                  className={`btn-action ${isFavorited ? 'active' : ''} ${!userId ? 'disabled' : ''}`} // Thêm class disabled cho CSS nếu cần
+                  className={`btn-action ${isFavorited ? 'active' : ''} ${!userId ? 'disabled' : ''}`}
                   onClick={() => toggleFavorite(songId)}
                   disabled={isDisabled}
                   style={{
                     opacity: isDisabled ? 0.5 : 1,
-                    cursor: isDisabled ? 'not-allowed' : (!userId ? 'default' : 'pointer') // Cursor default nếu !userId
+                    cursor: isDisabled ? 'not-allowed' : (!userId ? 'default' : 'pointer')
                   }}
                 >
                   {isLoading ? (
@@ -261,4 +263,4 @@ const parseDuration = (duration) => {
   return Number(duration) || 0;
 };
 
-export default SongList;
+export default SongListRecent;

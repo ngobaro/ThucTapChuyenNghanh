@@ -1,113 +1,96 @@
 // FILE: demo/src/pages/FavoritesPage.jsx
+
 import { useState, useEffect } from 'react';
-import { Heart, Play, MoreVertical } from 'lucide-react';
+import { Heart, Loader2 } from 'lucide-react';
 import api from '../services/api';
 import { API_ENDPOINTS } from '../utils/constants';
+import SongCard from '../components/music/SongCard'; // Import SongCard cho grid
 import './FavoritesPage.css';
 
 function FavoritesPage() {
   const [favoriteSongs, setFavoriteSongs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const [userId, setUserId] = useState(null); // Handle userId fetch
 
   useEffect(() => {
-    fetchFavoriteSongs();
+    fetchUserAndFavorites();
   }, []);
 
-  const fetchFavoriteSongs = async () => {
+  const fetchUserAndFavorites = async () => {
     try {
       setLoading(true);
       
-      // Lấy thông tin user hiện tại
-      const userId = localStorage.getItem('userId');
-      if (!userId) {
-        console.warn('No user ID found');
-        return;
-      }
-      
-      // Lấy user info với danh sách favorites
-      const userResponse = await api.get(API_ENDPOINTS.USER_BY_ID(userId));
-      console.log('User response for favorites:', userResponse.data);
-      
-      const userData = userResponse.data.result || userResponse.data;
-      setUser(userData);
-      
-      // Nếu user có danh sách favorite song IDs
-      let favoriteSongIds = [];
-      if (userData.favorites && Array.isArray(userData.favorites)) {
-        favoriteSongIds = userData.favorites;
-      } else if (userData.favoriteSongs) {
-        favoriteSongIds = userData.favoriteSongs;
-      }
-      
-      console.log('Favorite song IDs:', favoriteSongIds);
-      
-      if (favoriteSongIds.length === 0) {
-        setFavoriteSongs([]);
-        return;
-      }
-      
-      // Lấy thông tin chi tiết của từng bài hát yêu thích
-      const favoriteSongsPromises = favoriteSongIds.map(async (songId) => {
+      // Fetch userId nếu chưa có (từ /users/myInfo)
+      let currentUserId = localStorage.getItem('userId');
+      if (!currentUserId) {
         try {
-          const songResponse = await api.get(API_ENDPOINTS.SONG_BY_ID(songId));
-          const song = songResponse.data.result || songResponse.data;
-          
-          // Lấy artist name
-          let artistName = 'Unknown Artist';
-          if (song.idartist) {
-            try {
-              const artistResponse = await api.get(API_ENDPOINTS.ARTIST_BY_ID(song.idartist));
-              const artist = artistResponse.data.result || artistResponse.data;
-              artistName = artist.artistname || artist.name || 'Unknown Artist';
-            } catch (artistError) {
-              console.warn(`Could not fetch artist for song ${songId}:`, artistError);
-            }
+          const userRes = await api.get(API_ENDPOINTS.MY_INFO);
+          const userData = userRes.data?.result || userRes.data;
+          currentUserId = userData?.id || userData?.userId;
+          if (currentUserId) {
+            localStorage.setItem('userId', currentUserId.toString());
+            setUserId(Number(currentUserId));
+          } else {
+            console.warn('No userId in myInfo');
+            return;
           }
-          
-          return {
-            id: song.songId || song.id,
-            title: song.title || 'Unknown Title',
-            artist: artistName,
-            album: song.idalbum || 'Single',
-            duration: formatDuration(song.duration),
-            coverColor: getRandomColor(),
-            addedDate: new Date().toLocaleDateString('vi-VN')
-          };
-        } catch (error) {
-          console.error(`Error fetching song ${songId}:`, error);
-          return null;
+        } catch (err) {
+          console.error('Error fetching user info:', err);
+          if (err.response?.status === 401) {
+            localStorage.clear();
+            window.location.href = '/login';
+          }
+          return;
         }
-      });
+      } else {
+        setUserId(Number(currentUserId));
+      }
+
+      // Dùng USER_FAVORITES(userId) để lấy trực tiếp list SongResponse
+      const res = await api.get(API_ENDPOINTS.USER_FAVORITES(currentUserId)); // GET /users/{userId}/favorites
+      const favSongs = res.data?.result || []; // List<SongResponse> từ backend
       
-      const songs = (await Promise.all(favoriteSongsPromises)).filter(Boolean);
-      console.log('Favorite songs details:', songs);
+      console.log('Favorite songs from API:', favSongs);
+      
+      // Map sang format cho SongCard (dùng dữ liệu từ response)
+      const songs = favSongs.map(song => ({
+        id: song.songId || song.id,
+        title: song.title || 'Unknown Title',
+        artist: song.artist || 'Unknown Artist', // Giả sử backend trả artist
+        album: song.idalbum ? `Album ${song.idalbum}` : 'Single',
+        duration: formatDuration(song.duration),
+        coverUrl: song.avatar || '/default-cover.png', // Real cover
+        addedDate: new Date().toLocaleDateString('vi-VN')
+      }));
+
       setFavoriteSongs(songs);
       
     } catch (error) {
       console.error('Error fetching favorite songs:', error);
       
-      // Fallback data
-      setFavoriteSongs([
-        { 
-          id: 101, 
-          title: 'Blinding Lights', 
-          artist: 'The Weeknd', 
-          album: 'After Hours',
-          duration: '3:22',
-          addedDate: '2024-01-15',
-          coverColor: '#8B0000'
-        },
-        { 
-          id: 102, 
-          title: 'Flowers', 
-          artist: 'Miley Cyrus', 
-          album: 'Endless Summer Vacation',
-          duration: '3:20',
-          addedDate: '2024-02-10',
-          coverColor: '#FF69B4'
-        },
-      ]);
+      // Fallback data (chỉ nếu error không phải auth)
+      if (error.response?.status !== 401) {
+        setFavoriteSongs([
+          { 
+            id: 101, 
+            title: 'Blinding Lights', 
+            artist: 'The Weeknd', 
+            album: 'After Hours',
+            duration: '3:22',
+            coverUrl: '/default-cover.png',
+            addedDate: '2024-01-15'
+          },
+          { 
+            id: 102, 
+            title: 'Flowers', 
+            artist: 'Miley Cyrus', 
+            album: 'Endless Summer Vacation',
+            duration: '3:20',
+            coverUrl: '/default-cover.png',
+            addedDate: '2024-02-10'
+          },
+        ]);
+      }
     } finally {
       setLoading(false);
     }
@@ -136,99 +119,60 @@ function FavoritesPage() {
     return '00:00';
   };
 
-  const getRandomColor = () => {
-    const colors = ['#1DB954', '#FF6B6B', '#4ECDC4', '#FF9F1C', '#9D4EDD', '#06D6A0', '#118AB2'];
-    return colors[Math.floor(Math.random() * colors.length)];
-  };
-
-  const handlePlay = (songId) => {
-    console.log('Play song:', songId);
-  };
-
   const handleRemoveFavorite = async (songId) => {
     try {
-      const userId = localStorage.getItem('userId');
-      if (!userId) return;
+      if (!userId) {
+        alert('Vui lòng đăng nhập lại!');
+        return;
+      }
       
       // Gọi API để xóa khỏi favorites
       await api.delete(API_ENDPOINTS.REMOVE_FAVORITE(userId, songId));
       
-      // Cập nhật UI
+      // Cập nhật UI (filter local)
       setFavoriteSongs(prev => prev.filter(song => song.id !== songId));
       
+      console.log('Removed favorite:', songId);
     } catch (error) {
       console.error('Error removing favorite:', error);
+      alert('Lỗi khi xóa bài hát yêu thích');
     }
   };
 
   if (loading) {
     return (
       <div className="favorites-page loading">
-        <div className="spinner"></div>
+        <Loader2 size={48} className="spinner" />
+        <p>Đang tải danh sách yêu thích...</p>
       </div>
     );
   }
 
   return (
     <div className="favorites-page">
-      <div className="page-header">
-        <div className="header-icon">
-          <Heart size={48} />
+      <section className="hero-section"> {/* Match HomePage hero style */}
+        <h1>❤️ Bài hát yêu thích</h1>
+        <p>Những bài hát bạn đã lưu</p>
+        <div className="stats">
+          <span className="stat-item">
+            <strong>{favoriteSongs.length}</strong> bài hát
+          </span>
         </div>
-        <div className="header-info">
-          <span className="page-type">COLLECTION</span>
-          <h1>Bài hát yêu thích</h1>
-          <p>{favoriteSongs.length} bài hát đã thích</p>
-        </div>
-      </div>
+      </section>
 
       {favoriteSongs.length > 0 ? (
-        <div className="favorites-content">
-          <div className="favorites-controls">
-            <button className="btn-play-all" onClick={() => handlePlay('all')}>
-              <Play size={20} />
-              Phát tất cả
-            </button>
-          </div>
-
-          <div className="favorites-grid">
+        <section className="trending-section"> {/* Match HomePage trending style */}
+          <h2>🔥 Danh sách yêu thích của bạn</h2>
+          <div className="song-grid"> {/* Grid như Trending Now */}
             {favoriteSongs.map(song => (
-              <div key={song.id} className="song-card">
-                <div 
-                  className="song-cover"
-                  style={{ backgroundColor: song.coverColor }}
-                >
-                  <span className="song-icon">♪</span>
-                  <button 
-                    className="btn-play-overlay"
-                    onClick={() => handlePlay(song.id)}
-                  >
-                    <Play size={24} />
-                  </button>
-                </div>
-                <div className="song-info">
-                  <h3 className="song-title">{song.title}</h3>
-                  <p className="song-artist">{song.artist}</p>
-                  <div className="song-meta">
-                    <span className="song-album">{song.album}</span>
-                    <span className="song-duration">{song.duration}</span>
-                  </div>
-                  <div className="song-actions">
-                    <button 
-                      className="btn-favorite active"
-                      onClick={() => handleRemoveFavorite(song.id)}
-                    >
-                      <Heart size={16} fill="currentColor" />
-                    </button>
-                    <button className="btn-more">
-                      <MoreVertical size={16} />
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <SongCard
+                key={song.id}
+                song={song}
+                onRemoveFavorite={handleRemoveFavorite} // Pass callback cho remove
+              />
             ))}
           </div>
-        </div>
+        </section>
       ) : (
         <div className="empty-state">
           <Heart size={64} />

@@ -242,3 +242,33 @@
   }
 }
 
+
+/* Add to SongList.css */
+.song-list-header {
+  grid-template-columns: 40px 2fr 1.5fr 1fr 120px 100px 80px; /* Adjust for listened column */
+}
+
+.song-list-item {
+  grid-template-columns: 40px 2fr 1.5fr 1fr 120px 100px 80px; /* Adjust for listened column */
+}
+
+.col-listened {
+  color: var(--text-secondary);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+/* Responsive: Hide listened on small screens */
+@media (max-width: 1024px) {
+  .song-list-header,
+  .song-list-item {
+    grid-template-columns: 40px 2fr 1fr 100px 60px; /* Hide listened */
+  }
+  
+  .col-listened {
+    display: none;
+  }
+}

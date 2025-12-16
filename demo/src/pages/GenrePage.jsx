@@ -20,6 +20,72 @@ function GenrePage() {
     }
   }, [id]);
 
+  // Lấy tất cả artists một lần để tránh multiple requests
+  const loadArtists = async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.ARTISTS);
+      console.log('Artists response:', response.data);
+      
+      const artistsMap = {};
+      let artistsData = [];
+      
+      if (Array.isArray(response.data)) {
+        artistsData = response.data;
+      } else if (response.data.result && Array.isArray(response.data.result)) {
+        artistsData = response.data.result;
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        artistsData = response.data.data;
+      }
+      
+      artistsData.forEach(artist => {
+        const artistId = artist.idartist || artist.id;
+        const artistName = artist.artistname || artist.name || 'Unknown Artist';
+        artistsMap[artistId] = artistName;
+      });
+      
+      console.log('Artists map:', artistsMap);
+      return artistsMap;
+    } catch (err) {
+      console.warn('Error loading artists:', err);
+      return {};
+    }
+  };
+
+  // Lấy artist-song relationships
+  const loadArtistSongs = async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.ARTIST_SONGS.BASE);
+      console.log('Artist songs response:', response.data);
+      
+      const artistSongMap = {};
+      let data = [];
+      
+      if (Array.isArray(response.data)) {
+        data = response.data;
+      } else if (response.data.result && Array.isArray(response.data.result)) {
+        data = response.data.result;
+      }
+      
+      data.forEach(item => {
+        const songId = item.idsong;
+        const artistId = item.idartist;
+        
+        if (songId && artistId) {
+          if (!artistSongMap[songId]) {
+            artistSongMap[songId] = [];
+          }
+          artistSongMap[songId].push(artistId);
+        }
+      });
+      
+      console.log('Artist song map:', artistSongMap);
+      return artistSongMap;
+    } catch (err) {
+      console.warn('Error loading artist songs:', err);
+      return {};
+    }
+  };
+
   const fetchGenreData = async () => {
     try {
       setLoading(true);
@@ -43,19 +109,37 @@ function GenrePage() {
         songsData = songsResponse.data.data;
       }
       
-      // Process songs
+      // Load artists và artist-songs parallel
+      const [artistsMap, artistSongMap] = await Promise.all([
+        loadArtists(),
+        loadArtistSongs()
+      ]);
+      
+      // Process songs với multi-artist mapping
       const processedSongs = songsData.map(song => {
         const songId = song.songId || song.id;
+        const artistIds = artistSongMap[songId] || [];
+        
+        // Lấy artist names từ artistIds
+        const artistNames = artistIds
+          .map(aId => artistsMap[aId] || 'Unknown Artist')
+          .filter(name => name)
+          .join(', ');
+        
+        const artistName = artistNames || song.artist || 'Unknown Artist';
         
         return {
           id: songId,
           title: song.title || 'Unknown Title',
-          artist: song.artist || 'Unknown Artist',
+          artist: artistName,
           album: song.idalbum || 'Single',
           duration: formatDuration(song.duration),
           coverUrl: song.avatar || '/default-cover.png',
           audioUrl: song.path || '',
-          views: song.views || 0
+          views: song.views || 0,
+          releaseDate: song.releasedate,
+          genreId: song.genreId || parseInt(id),
+          color: getColorByGenre(parseInt(id))
         };
       });
       
@@ -63,7 +147,7 @@ function GenrePage() {
         id: parseInt(id),
         name: genreData.genrename || genreData.name || 'Thể loại',
         description: getDescription(genreData.genrename || genreData.name),
-        color: getColorByGenreId(id),
+        color: getColorByGenre(parseInt(id)),
         songCount: processedSongs.length
       });
       
@@ -77,7 +161,7 @@ function GenrePage() {
     }
   };
 
-  const getColorByGenreId = (genreId) => {
+  const getColorByGenre = (genreId) => {
     const colors = {
       1: '#1DB954',
       2: '#FF6B6B',

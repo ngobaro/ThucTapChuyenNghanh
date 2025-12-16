@@ -1,6 +1,6 @@
 // FILE: demo/src/components/layout/PlayerBar.jsx
 
-import { Heart, MoreVertical } from 'lucide-react';
+import { Heart, MoreVertical, Loader2 } from 'lucide-react';
 import { usePlayer } from '../../context/PlayerContext';
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
@@ -15,14 +15,46 @@ function PlayerBar() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(false); // New: Loading cho fetch user
 
+  // Fetch userId từ localStorage HOẶC /users/myInfo nếu null
   useEffect(() => {
-    const storedUserId = localStorage.getItem('userId');
-    console.log('Stored userId in PlayerBar:', storedUserId); // Debug log
-    if (storedUserId) {
-      setUserId(parseInt(storedUserId));
-    }
-  }, []);
+    const fetchUserProfile = async () => {
+      const storedUserId = localStorage.getItem('userId');
+      console.log('Stored userId in PlayerBar:', storedUserId); // Debug
+      if (storedUserId) {
+        const parsedId = Number(storedUserId);
+        if (!isNaN(parsedId)) {
+          setUserId(parsedId);
+          return;
+        }
+      }
+      // Fetch nếu null
+      setIsLoadingUser(true);
+      try {
+        const res = await api.get(API_ENDPOINTS.MY_INFO); // GET /users/myInfo
+        const userData = res.data?.result || res.data;
+        console.log('Fetched user profile in PlayerBar:', userData);
+        const fetchedId = userData?.id || userData?.userId;
+        if (fetchedId) {
+          setUserId(Number(fetchedId));
+          localStorage.setItem('userId', fetchedId.toString()); // Cache
+          console.log('Fetched userId in PlayerBar:', fetchedId);
+        } else {
+          console.warn('No userId in myInfo response');
+        }
+      } catch (err) {
+        console.error('Fetch user profile error in PlayerBar:', err);
+        if (err.response?.status === 401) {
+          localStorage.clear();
+          window.location.href = '/login';
+        }
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+    fetchUserProfile();
+  }, []); // Chạy 1 lần
 
   useEffect(() => {
     if (currentSong && userId) {
@@ -35,20 +67,13 @@ function PlayerBar() {
   const checkIfFavorited = useCallback(async (songId) => {
     console.log('Checking favorite for song:', songId, 'user:', userId); // Debug log
     try {
-      const userResponse = await api.get(API_ENDPOINTS.USER_BY_ID(userId));
-      console.log('User response in PlayerBar:', userResponse.data); // Debug log
+      // Fix: Dùng USER_FAVORITES(userId) thay USER_BY_ID (trả list SongResponse)
+      const res = await api.get(API_ENDPOINTS.USER_FAVORITES(userId)); // GET /users/{userId}/favorites
+      const favSongs = res.data?.result || []; // List<SongResponse>
+      const favIds = favSongs.map(song => song.songId); // Extract IDs từ response
+      console.log('Found favorites in PlayerBar:', favIds); // Debug log
       
-      const userData = userResponse.data.result || userResponse.data;
-      
-      let favoriteSongIds = [];
-      if (userData.favorites && Array.isArray(userData.favorites)) {
-        favoriteSongIds = userData.favorites;
-        console.log('Found favorites in PlayerBar:', favoriteSongIds); // Debug log
-      } else if (userData.favoriteSongs && Array.isArray(userData.favoriteSongs)) {
-        favoriteSongIds = userData.favoriteSongs;
-      }
-      
-      const isCurrentlyFavorited = favoriteSongIds.includes(songId);
+      const isCurrentlyFavorited = favIds.includes(songId);
       console.log('Is favorited:', isCurrentlyFavorited); // Debug log
       setIsFavorited(isCurrentlyFavorited);
     } catch (error) {
@@ -93,6 +118,18 @@ function PlayerBar() {
       <div className="player-bar empty">
         <div className="player-bar-content">
           <p className="empty-message">Select a song to play</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading nếu đang fetch user
+  if (isLoadingUser) {
+    return (
+      <div className="player-bar loading">
+        <div className="player-bar-content">
+          <Loader2 size={24} className="spinner" />
+          <p>Đang tải thông tin...</p>
         </div>
       </div>
     );
