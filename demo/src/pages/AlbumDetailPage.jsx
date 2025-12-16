@@ -13,7 +13,6 @@ function AlbumDetailPage() {
   const [album, setAlbum] = useState(null);
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [artist, setArtist] = useState(null);
 
   useEffect(() => {
     if (id) {
@@ -103,20 +102,10 @@ function AlbumDetailPage() {
         loadArtistSongs()
       ]);
       
-      // Lấy thông tin artist (main artist cho album)
+      // Lấy thông tin artist (main artist cho album) từ map để tránh request thừa
       let artistName = 'Unknown Artist';
-      let artistId = null;
       if (albumData.idartist) {
-        artistId = albumData.idartist;
-        try {
-          const artistResponse = await api.get(API_ENDPOINTS.ARTIST_BY_ID(albumData.idartist));
-          const artistData = artistResponse.data.result || artistResponse.data;
-          artistName = artistData.artistname || artistData.name || 'Unknown Artist';
-          setArtist(artistData);
-        } catch (artistError) {
-          console.warn('Could not fetch artist info:', artistError);
-          artistName = artistsMap[artistId] || 'Unknown Artist';
-        }
+        artistName = artistsMap[albumData.idartist] || 'Unknown Artist';
       }
       
       // Lấy danh sách bài hát trong album (sử dụng params album=id, assuming API supports)
@@ -165,6 +154,9 @@ function AlbumDetailPage() {
       // Tính tổng thời lượng
       const totalDuration = calculateTotalDuration(formattedSongs);
       
+      // Thêm cover cho album nếu có
+      const albumCover = albumData.cover || albumData.avatar || '/default-album.jpg';
+      
       setAlbum({
         id: albumData.idalbum || albumData.id,
         title: albumData.albumname || albumData.title || 'Unknown Album',
@@ -174,7 +166,8 @@ function AlbumDetailPage() {
         description: getAlbumDescription(albumData.albumname || albumData.title),
         color: getRandomColor(),
         duration: totalDuration,
-        songCount: formattedSongs.length
+        songCount: formattedSongs.length,
+        cover: albumCover  // Thêm cover vào album state
       });
       
       setSongs(formattedSongs);
@@ -293,11 +286,25 @@ function AlbumDetailPage() {
   return (
     <div className="album-detail-page">
       <div className="album-header">
-        <div 
-          className="album-cover-large"
-          style={{ backgroundColor: album.color }}
-        >
-          <span className="album-icon">A</span>
+        <div className="album-cover-large">
+          {album.cover && album.cover !== '/default-album.jpg' ? (
+            <img 
+              src={album.cover} 
+              alt={`${album.title} cover`} 
+              className="album-image"
+              onError={(e) => {
+                e.target.style.display = 'none'; // Ẩn img nếu load lỗi, fallback sang icon
+              }}
+            />
+          ) : null}
+          {!album.cover || album.cover === '/default-album.jpg' ? (
+            <div 
+              className="album-fallback-cover"
+              style={{ backgroundColor: album.color }}
+            >
+              <span className="album-icon">A</span>
+            </div>
+          ) : null}
         </div>
         
         <div className="album-info">

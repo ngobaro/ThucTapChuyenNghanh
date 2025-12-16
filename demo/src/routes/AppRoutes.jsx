@@ -19,6 +19,7 @@ import DashboardPage from '../pages/admin/DashboardPage'; // Import DashboardPag
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import NotFoundPage from '../pages/NotFoundPage';
+import AlbumDetailPage from '../pages/AlbumDetailPage';
 
 function AppRoutes() {
   return (
@@ -30,7 +31,7 @@ function AppRoutes() {
         <Route path="favorites" element={<FavoritesPage />} />
         <Route path="recent" element={<RecentPage />} />
         <Route path="albums" element={<AlbumsPage />} />
-        <Route path="album/:id" element={<GenrePage />} />
+        <Route path="album/:id" element={<AlbumDetailPage />} />
         <Route path="playlists" element={<LibraryPage />} />
         <Route path="playlist/:id" element={<GenrePage />} />
         <Route path="genres" element={<GenresPage />} />
