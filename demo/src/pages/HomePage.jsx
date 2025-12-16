@@ -12,6 +12,7 @@ function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [artists, setArtists] = useState({});
+  const [albumMap, setAlbumMap] = useState({});  // Thêm state cho albumMap
 
   useEffect(() => {
     loadData();
@@ -44,6 +45,37 @@ function HomePage() {
       return artistsMap;
     } catch (err) {
       console.warn('Error loading artists:', err);
+      return {};
+    }
+  };
+
+  // Thêm hàm loadAlbums (mới)
+  const loadAlbums = async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.ALBUMS);
+      console.log('Albums response:', response.data);
+      
+      const albumMapTemp = {};
+      let albumsData = [];
+      
+      if (Array.isArray(response.data)) {
+        albumsData = response.data;
+      } else if (response.data.result && Array.isArray(response.data.result)) {
+        albumsData = response.data.result;
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        albumsData = response.data.data;
+      }
+      
+      albumsData.forEach(album => {
+        const albumId = album.idalbum || album.id;
+        const albumName = album.albumname || album.title || 'Unknown Album';
+        albumMapTemp[albumId] = albumName;
+      });
+      
+      console.log('Albums map:', albumMapTemp);
+      return albumMapTemp;
+    } catch (err) {
+      console.warn('Error loading albums:', err);
       return {};
     }
   };
@@ -87,21 +119,25 @@ function HomePage() {
     try {
       setLoading(true);
       
-      // Load song, artists, và artist-songs parallel
-      const [songsResponse, artistsMap, artistSongMap] = await Promise.all([
+      // Load song, artists, artist-songs, VÀ albums parallel
+      const [songsResponse, artistsMap, artistSongMap, albumMapTemp] = await Promise.all([
         getAllSongs(),
         loadArtists(),
-        loadArtistSongs()
+        loadArtistSongs(),
+        loadAlbums()  // Thêm loadAlbums
       ]);
       
-      console.log('All data loaded:', { songsResponse, artistsMap, artistSongMap });
+      console.log('All data loaded:', { songsResponse, artistsMap, artistSongMap, albumMapTemp });
       
       const songsData = Array.isArray(songsResponse) ? songsResponse : 
                        songsResponse.result || songsResponse.data || [];
       
       console.log('Songs data:', songsData);
       
-      // Map songs với artist names
+      // Set albumMap vào state (để dùng nếu cần sau)
+      setAlbumMap(albumMapTemp);
+      
+      // Map songs với artist names VÀ album names
       const processedSongs = songsData.map(song => {
         const songId = song.songId || song.id;
         const artistIds = artistSongMap[songId] || [];
@@ -114,11 +150,18 @@ function HomePage() {
         
         const artistName = artistNames || song.artist || 'Unknown Artist';
         
+        // LẤY TÊN ALBUM: Map từ idalbum
+        const albumId = song.idalbum || song.albumId;  // Fallback nếu tên trường khác
+        const albumName = albumMapTemp[albumId] || null;
+        
+        // FALLBACK: Nếu không có album, dùng `${title} (${artistName})`
+        const finalAlbum = albumName || `${song.title || 'Unknown'} (${artistName})`;
+        
         return {
           id: songId,
           title: song.title || 'Unknown Title',
           artist: artistName,
-          album: song.idalbum || 'Single',
+          album: finalAlbum,  // SỬA Ở ĐÂY: Tên album thực hoặc fallback
           duration: formatDuration(song.duration),
           coverUrl: song.avatar || '/default-cover.png',
           audioUrl: song.path || '',

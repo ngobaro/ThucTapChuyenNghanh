@@ -133,24 +133,38 @@ function DashboardPage() {
   };
 
   const loadAlbums = async () => {
-    try {
-      const response = await api.get(API_ENDPOINTS.ALBUMS);
-      let albumsData = [];
-      
-      if (Array.isArray(response.data)) {
-        albumsData = response.data;
-      } else if (response.data.result && Array.isArray(response.data.result)) {
-        albumsData = response.data.result;
-      } else if (response.data) {
-        albumsData = [response.data];
-      }
-      
-      setAlbums(albumsData);
-      setStats(prev => ({ ...prev, totalAlbums: albumsData.length }));
-    } catch (error) {
-      console.error('Error loading albums:', error);
+  try {
+    const response = await api.get(API_ENDPOINTS.ALBUMS);
+    let albumsData = [];
+    
+    if (Array.isArray(response.data)) {
+      albumsData = response.data;
+    } else if (response.data.result && Array.isArray(response.data.result)) {
+      albumsData = response.data.result;
+    } else if (response.data) {
+      albumsData = [response.data];
     }
-  };
+    
+    // JOIN Artist ở frontend
+    const albumsWithArtists = albumsData.map(album => {
+      const artist = artists.find(a => 
+        (a.idartist || a.id) === (album.idartist || album.artistId)
+      );
+      return {
+        ...album,
+        artist: artist ? { 
+          name: artist.artistname || artist.name,
+          idartist: artist.idartist || artist.id 
+        } : null
+      };
+    });
+    
+    setAlbums(albumsWithArtists);
+    setStats(prev => ({ ...prev, totalAlbums: albumsWithArtists.length }));
+  } catch (error) {
+    console.error('Error loading albums:', error);
+  }
+};
 
   const loadGenres = async () => {
     try {
