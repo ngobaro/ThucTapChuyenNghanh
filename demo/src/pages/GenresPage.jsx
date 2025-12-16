@@ -28,7 +28,7 @@ function GenresPage() {
         genresData = response.data.result;
       }
       
-      // Get song count for each genre
+      // Get song count for each genre using dedicated endpoint
       const genresWithCounts = await Promise.all(
         genresData.map(async (genre) => {
           try {

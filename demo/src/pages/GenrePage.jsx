@@ -2,7 +2,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import SongList from '../components/music/SongList';
-import { getGenreSongs } from '../services/songService';
 import api from '../services/api';
 import { API_ENDPOINTS } from '../utils/constants';
 import { Shuffle } from 'lucide-react';
@@ -14,7 +13,6 @@ function GenrePage() {
   const [genre, setGenre] = useState(null);
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [artists, setArtists] = useState({});
 
   useEffect(() => {
     if (id) {
@@ -32,26 +30,7 @@ function GenrePage() {
       
       let genreData = genreResponse.data.result || genreResponse.data;
       
-      // Load artists for song mapping
-      const artistsResponse = await api.get(API_ENDPOINTS.ARTISTS);
-      let artistsData = [];
-      
-      if (Array.isArray(artistsResponse.data)) {
-        artistsData = artistsResponse.data;
-      } else if (artistsResponse.data.result && Array.isArray(artistsResponse.data.result)) {
-        artistsData = artistsResponse.data.result;
-      }
-      
-      const artistsMap = {};
-      artistsData.forEach(artist => {
-        const artistId = artist.idartist || artist.id;
-        const artistName = artist.artistname || artist.name || 'Unknown Artist';
-        artistsMap[artistId] = artistName;
-      });
-      
-      setArtists(artistsMap);
-      
-      // Load genre songs
+      // Load genre songs using dedicated endpoint
       const songsResponse = await api.get(API_ENDPOINTS.GENRE_SONGS(id));
       console.log('Genre songs response:', songsResponse.data);
       
@@ -64,41 +43,14 @@ function GenrePage() {
         songsData = songsResponse.data.data;
       }
       
-      // Load artist-song relationships
-      const artistSongsResponse = await api.get(API_ENDPOINTS.ARTIST_SONGS.BASE);
-      let artistSongsData = [];
-      
-      if (Array.isArray(artistSongsResponse.data)) {
-        artistSongsData = artistSongsResponse.data;
-      } else if (artistSongsResponse.data.result && Array.isArray(artistSongsResponse.data.result)) {
-        artistSongsData = artistSongsResponse.data.result;
-      }
-      
-      const artistSongMap = {};
-      artistSongsData.forEach(item => {
-        const songId = item.idsong;
-        const artistId = item.idartist;
-        
-        if (songId && artistId) {
-          if (!artistSongMap[songId]) {
-            artistSongMap[songId] = [];
-          }
-          artistSongMap[songId].push(artistId);
-        }
-      });
-      
-      // Process songs with artist names
+      // Process songs
       const processedSongs = songsData.map(song => {
         const songId = song.songId || song.id;
-        const artistIds = artistSongMap[songId] || [];
-        const artistNames = artistIds
-          .map(artistId => artistsMap[artistId] || 'Unknown Artist')
-          .join(', ');
         
         return {
           id: songId,
           title: song.title || 'Unknown Title',
-          artist: artistNames || song.artist || 'Unknown Artist',
+          artist: song.artist || 'Unknown Artist',
           album: song.idalbum || 'Single',
           duration: formatDuration(song.duration),
           coverUrl: song.avatar || '/default-cover.png',
@@ -119,23 +71,7 @@ function GenrePage() {
       
     } catch (error) {
       console.error('Error fetching genre:', error);
-      
-      // Fallback với service cũ
-      try {
-        const response = await getGenreSongs(id);
-        setSongs(response.result || []);
-        
-        setGenre({
-          id: parseInt(id),
-          name: getGenreName(id),
-          description: getDescription(getGenreName(id)),
-          color: getColorByGenreId(id),
-          songCount: (response.result || []).length
-        });
-      } catch (innerError) {
-        console.error('Fallback also failed:', innerError);
-        navigate('/genres');
-      }
+      navigate('/genres');
     } finally {
       setLoading(false);
     }
@@ -153,20 +89,6 @@ function GenrePage() {
       8: '#FFD166',
     };
     return colors[genreId] || '#666';
-  };
-
-  const getGenreName = (genreId) => {
-    const names = {
-      1: 'Pop',
-      2: 'Hip Hop',
-      3: 'Rock',
-      4: 'R&B',
-      5: 'Jazz',
-      6: 'Electronic',
-      7: 'Country',
-      8: 'Indie',
-    };
-    return names[genreId] || 'Thể loại';
   };
 
   const getDescription = (genreName) => {

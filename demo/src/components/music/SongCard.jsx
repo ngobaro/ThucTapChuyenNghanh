@@ -1,3 +1,4 @@
+// demo/src/components/music/SongCard.jsx
 import { usePlayer } from '../../context/PlayerContext';
 import { Play } from 'lucide-react';
 import './SongCard.css';

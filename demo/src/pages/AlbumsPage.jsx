@@ -54,12 +54,13 @@ function AlbumsPage() {
         albumsData = albumsResponse.data.result;
       }
       
-      // Get songs count for each album
+      // Get songs count for each album (using artist since no direct album-song relation)
       const albumsWithSongs = await Promise.all(
         albumsData.map(async (album) => {
           try {
+            const artistId = album.idartist;
             const songsResponse = await api.get(API_ENDPOINTS.SONGS, {
-              params: { album: album.idalbum || album.id }
+              params: { artist: artistId }
             });
             
             let songs = [];
@@ -70,27 +71,26 @@ function AlbumsPage() {
             }
             
             // Get artist name
-            const artistId = album.idartist;
             const artistName = artistId ? artistsMap[artistId] : 'Unknown Artist';
             
             return {
               id: album.idalbum || album.id,
-              title: album.title || 'Unknown Album',
+              title: album.albumname || album.title || 'Unknown Album',
               artist: artistName,
-              year: album.year || new Date().getFullYear(),
+              year: album.releaseyear || album.year || new Date().getFullYear(),
               tracks: songs.length,
-              coverUrl: album.cover || '/default-album.jpg',
+              coverUrl: album.cover || album.avatar || '/default-album.jpg',
               color: getRandomColor()
             };
           } catch (error) {
             console.error(`Error loading songs for album ${album.idalbum}:`, error);
             return {
               id: album.idalbum || album.id,
-              title: album.title || 'Unknown Album',
+              title: album.albumname || album.title || 'Unknown Album',
               artist: 'Unknown Artist',
-              year: album.year || new Date().getFullYear(),
+              year: album.releaseyear || album.year || new Date().getFullYear(),
               tracks: 0,
-              coverUrl: album.cover || '/default-album.jpg',
+              coverUrl: album.cover || album.avatar || '/default-album.jpg',
               color: getRandomColor()
             };
           }

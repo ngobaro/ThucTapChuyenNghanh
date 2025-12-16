@@ -33,7 +33,9 @@ function AlbumDetailPage() {
       
       // Lấy thông tin artist
       let artistName = 'Unknown Artist';
+      let artistId = null;
       if (albumData.idartist) {
+        artistId = albumData.idartist;
         try {
           const artistResponse = await api.get(API_ENDPOINTS.ARTIST_BY_ID(albumData.idartist));
           const artistData = artistResponse.data.result || artistResponse.data;
@@ -44,9 +46,9 @@ function AlbumDetailPage() {
         }
       }
       
-      // Lấy danh sách bài hát trong album
+      // Lấy danh sách bài hát trong album (using artist since no direct album-song relation)
       const songsResponse = await api.get(API_ENDPOINTS.SONGS, {
-        params: { album: albumData.idalbum || albumData.id }
+        params: { artist: artistId }
       });
       
       console.log('Album songs response:', songsResponse.data);
@@ -63,7 +65,7 @@ function AlbumDetailPage() {
         id: song.songId || song.id,
         title: song.title || 'Unknown Title',
         artist: artistName,
-        album: albumData.title || 'Unknown Album',
+        album: albumData.albumname || albumData.title || 'Unknown Album',
         duration: formatDuration(song.duration),
         trackNumber: song.trackNumber || 0,
         coverUrl: song.avatar || albumData.cover || '/default-album.jpg'
@@ -74,11 +76,11 @@ function AlbumDetailPage() {
       
       setAlbum({
         id: albumData.idalbum || albumData.id,
-        title: albumData.title || 'Unknown Album',
+        title: albumData.albumname || albumData.title || 'Unknown Album',
         artist: artistName,
-        year: albumData.year || new Date().getFullYear(),
+        year: albumData.releaseyear || albumData.year || new Date().getFullYear(),
         genre: albumData.genre || 'Unknown Genre',
-        description: getAlbumDescription(albumData.title),
+        description: getAlbumDescription(albumData.albumname || albumData.title),
         color: getRandomColor(),
         duration: totalDuration,
         songCount: formattedSongs.length
