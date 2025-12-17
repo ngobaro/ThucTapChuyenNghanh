@@ -117,24 +117,7 @@ export const login = async (username, password) => {
   }
 };
 
-// Hàm helper để kiểm tra role từ localStorage
-export const getUserRole = () => {
-  try {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) return 'USER';
-    
-    const user = JSON.parse(userStr);
-    return user.role?.toUpperCase() || 'USER';
-  } catch (error) {
-    console.error('Error getting user role:', error);
-    return 'USER';
-  }
-};
 
-// Hàm kiểm tra có phải admin không
-export const isAdmin = () => {
-  return getUserRole() === 'ADMIN';
-};
 
 // Hàm lấy thông tin user hiện tại
 export const getCurrentUser = () => {
@@ -202,4 +185,33 @@ export const logout = async () => {
   } finally {
     localStorage.clear();
   }
+};
+
+// Hàm kiểm tra token hợp lệ
+const isValidToken = (token) => {
+  if (!token) return false;
+  if (token === 'null' || token === 'undefined') return false;
+  if (typeof token !== 'string') return false;
+  if (token.length < 10) return false;
+  return true;
+};
+
+
+
+export const isAuthenticated = () => {
+  return !!getCurrentUser();
+};
+
+export const getUserId = () => {
+  const user = getCurrentUser();
+  return user?.id ? Number(user.id) : null;
+};
+
+export const getUserRole = () => {
+  const user = getCurrentUser();
+  return user?.role?.toUpperCase() || 'USER';
+};
+
+export const isAdmin = () => {
+  return getUserRole() === 'ADMIN';
 };
