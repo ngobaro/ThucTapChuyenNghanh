@@ -20,6 +20,8 @@ import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import AlbumDetailPage from '../pages/AlbumDetailPage';
+import { Play } from 'lucide-react';
+import PlaylistDetailPage from '../pages/PlaylistDetailPage';
 
 function AppRoutes() {
   return (
@@ -33,7 +35,7 @@ function AppRoutes() {
         <Route path="albums" element={<AlbumsPage />} />
         <Route path="album/:id" element={<AlbumDetailPage />} />
         <Route path="playlists" element={<LibraryPage />} />
-        <Route path="playlist/:id" element={<GenrePage />} />
+        {/* <Route path="playlist/:id" element={<PlaylistDetailPage />} /> */}
         <Route path="genres" element={<GenresPage />} />
         <Route path="genre/:id" element={<GenrePage />} />
         <Route path="profile" element={<ProfilePage />} />

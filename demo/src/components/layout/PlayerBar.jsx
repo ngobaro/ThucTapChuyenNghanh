@@ -1,8 +1,8 @@
 // FILE: demo/src/components/layout/PlayerBar.jsx
 
-import { Heart, MoreVertical, Loader2 } from 'lucide-react';
+import { Heart, MoreVertical, Loader2, Plus, X, ListMusic } from 'lucide-react';
 import { usePlayer } from '../../context/PlayerContext';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../../services/api';
 import { API_ENDPOINTS } from '../../utils/constants';
 import PlayerControls from '../music/PlayerControls';
@@ -12,16 +12,25 @@ import './PlayerBar.css';
 
 function PlayerBar() {
   const { currentSong, isPlaying } = usePlayer();
-  const [isFavorited, setIsFavorited] = useState(false);
+  const [favoriteStates, setFavoriteStates] = useState({}); // Cache favorites
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [userId, setUserId] = useState(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(false); // New: Loading cho fetch user
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
+  const favoritesLoadedRef = useRef(false);
 
-  // Fetch userId từ localStorage HOẶC /users/myInfo nếu null
+  // Playlist modal states (tương tự SongList)
+  const [playlists, setPlaylists] = useState([]);
+  const [loadingPlaylists, setLoadingPlaylists] = useState(false);
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [creatingPlaylist, setCreatingPlaylist] = useState(false);
+  const [modalError, setModalError] = useState('');
+
+  // Fetch userId
   useEffect(() => {
     const fetchUserProfile = async () => {
       const storedUserId = localStorage.getItem('userId');
-      console.log('Stored userId in PlayerBar:', storedUserId); // Debug
       if (storedUserId) {
         const parsedId = Number(storedUserId);
         if (!isNaN(parsedId)) {
@@ -29,19 +38,14 @@ function PlayerBar() {
           return;
         }
       }
-      // Fetch nếu null
       setIsLoadingUser(true);
       try {
-        const res = await api.get(API_ENDPOINTS.MY_INFO); // GET /users/myInfo
+        const res = await api.get(API_ENDPOINTS.MY_INFO);
         const userData = res.data?.result || res.data;
-        console.log('Fetched user profile in PlayerBar:', userData);
         const fetchedId = userData?.id || userData?.userId;
         if (fetchedId) {
           setUserId(Number(fetchedId));
-          localStorage.setItem('userId', fetchedId.toString()); // Cache
-          console.log('Fetched userId in PlayerBar:', fetchedId);
-        } else {
-          console.warn('No userId in myInfo response');
+          localStorage.setItem('userId', fetchedId.toString());
         }
       } catch (err) {
         console.error('Fetch user profile error in PlayerBar:', err);
@@ -54,33 +58,33 @@ function PlayerBar() {
       }
     };
     fetchUserProfile();
-  }, []); // Chạy 1 lần
+  }, []);
 
+  // Load favorites once khi có userId
   useEffect(() => {
-    if (currentSong && userId) {
-      checkIfFavorited(currentSong.id);
-    } else {
-      setIsFavorited(false);
-    }
-  }, [currentSong, userId]);
-
-  const checkIfFavorited = useCallback(async (songId) => {
-    console.log('Checking favorite for song:', songId, 'user:', userId); // Debug log
-    try {
-      // Fix: Dùng USER_FAVORITES(userId) thay USER_BY_ID (trả list SongResponse)
-      const res = await api.get(API_ENDPOINTS.USER_FAVORITES(userId)); // GET /users/{userId}/favorites
-      const favSongs = res.data?.result || []; // List<SongResponse>
-      const favIds = favSongs.map(song => song.songId); // Extract IDs từ response
-      console.log('Found favorites in PlayerBar:', favIds); // Debug log
-      
-      const isCurrentlyFavorited = favIds.includes(songId);
-      console.log('Is favorited:', isCurrentlyFavorited); // Debug log
-      setIsFavorited(isCurrentlyFavorited);
-    } catch (error) {
-      console.error('Error checking favorite status in PlayerBar:', error);
-      setIsFavorited(false);
+    if (userId && !favoritesLoadedRef.current) {
+      loadFavorites();
     }
   }, [userId]);
+
+  const loadFavorites = useCallback(async () => {
+    try {
+      const res = await api.get(API_ENDPOINTS.USER_FAVORITES(userId));
+      const favSongs = res.data?.result || [];
+      const favMap = {};
+      favSongs.forEach(song => {
+        favMap[song.songId || song.id] = true;
+      });
+      setFavoriteStates(favMap);
+      favoritesLoadedRef.current = true;
+    } catch (error) {
+      console.error('Error loading favorites in PlayerBar:', error);
+      favoritesLoadedRef.current = true;
+    }
+  }, [userId]);
+
+  // isFavorited từ cache
+  const isFavorited = currentSong ? !!favoriteStates[currentSong.id] : false;
 
   const toggleFavorite = useCallback(async () => {
     if (!currentSong || !userId) {
@@ -88,30 +92,251 @@ function PlayerBar() {
       return;
     }
     
-    console.log('Toggling favorite in PlayerBar for song:', currentSong.id); // Debug log
-    
     setFavoriteLoading(true);
     try {
       if (isFavorited) {
-        console.log('Removing from favorites in PlayerBar...'); // Debug log
         await api.delete(API_ENDPOINTS.REMOVE_FAVORITE(userId, currentSong.id));
       } else {
-        console.log('Adding to favorites in PlayerBar...'); // Debug log
         await api.post(API_ENDPOINTS.ADD_FAVORITE(userId, currentSong.id), {});
       }
       
-      setIsFavorited(!isFavorited);
-      console.log('Favorite toggled in PlayerBar'); // Debug log
+      // Update cache
+      setFavoriteStates(prev => ({
+        ...prev,
+        [currentSong.id]: !isFavorited
+      }));
     } catch (error) {
       console.error('Error toggling favorite in PlayerBar:', error);
-      if (error.response) {
-        console.error('API Error Response:', error.response.data); // Debug log
-      }
       alert('Có lỗi xảy ra khi cập nhật danh sách yêu thích: ' + (error.response?.data?.message || error.message));
     } finally {
       setFavoriteLoading(false);
     }
   }, [currentSong, userId, isFavorited]);
+
+  // Load playlists (tương tự SongList, dùng endpoint chung)
+  const loadUserPlaylists = useCallback(async () => {
+    if (!userId) return;
+    
+    setLoadingPlaylists(true);
+    try {
+      const res = await api.get(API_ENDPOINTS.PLAYLISTS); // Backend filter theo token
+      setPlaylists(res.data?.result || []);
+    } catch (err) {
+      console.error('Load playlists error in PlayerBar:', err);
+      setPlaylists([]);
+    } finally {
+      setLoadingPlaylists(false);
+    }
+  }, [userId]);
+
+  // Auto load playlists khi có userId
+  useEffect(() => {
+    if (userId) {
+      loadUserPlaylists();
+    }
+  }, [userId, loadUserPlaylists]);
+
+  // Mở modal playlist cho currentSong
+  const openPlaylistModal = useCallback((e) => {
+    e.stopPropagation();
+    
+    if (!userId) {
+      alert('Vui lòng đăng nhập để thêm vào playlist!');
+      return;
+    }
+
+    if (!currentSong) {
+      alert('Không có bài hát nào đang phát!');
+      return;
+    }
+
+    setShowPlaylistModal(true);
+    setShowCreateForm(false);
+    setNewPlaylistName('');
+    setModalError('');
+
+    // Reload nếu empty
+    if (playlists.length === 0 && !loadingPlaylists) {
+      loadUserPlaylists();
+    }
+  }, [userId, currentSong, playlists.length, loadingPlaylists, loadUserPlaylists]);
+
+  // Đóng modal
+  const closePlaylistModal = useCallback(() => {
+    setShowPlaylistModal(false);
+    setShowCreateForm(false);
+    setNewPlaylistName('');
+    setModalError('');
+  }, []);
+
+  // Thêm vào playlist
+  const handleAddToPlaylist = useCallback(async (playlistId) => {
+    if (!currentSong?.id) return;
+    
+    try {
+      await api.post(API_ENDPOINTS.ADD_SONG_TO_PLAYLIST(playlistId, currentSong.id));
+      alert('Đã thêm bài hát vào playlist!');
+      closePlaylistModal();
+      // Reload playlists để update songCount nếu backend hỗ trợ
+      await loadUserPlaylists();
+    } catch (err) {
+      console.error('Add to playlist error in PlayerBar:', err);
+      alert('Không thể thêm bài hát vào playlist');
+    }
+  }, [currentSong?.id, loadUserPlaylists, closePlaylistModal]);
+
+  // Tạo playlist mới (bỏ userId, backend handle từ token)
+  const handleCreatePlaylist = useCallback(async () => {
+    const trimmedName = newPlaylistName.trim();
+    if (!trimmedName) {
+      setModalError('Vui lòng nhập tên playlist');
+      return;
+    }
+
+    setCreatingPlaylist(true);
+    try {
+      const createRes = await api.post(API_ENDPOINTS.PLAYLISTS, {
+        name: trimmedName,  // Hoặc nameplaylist nếu backend yêu cầu
+        description: ''
+        // Bỏ userId
+      });
+      
+      const newPlaylist = createRes.data?.result || createRes.data;
+      if (newPlaylist?.id || newPlaylist?.idplaylist) {
+        await loadUserPlaylists();
+        setShowCreateForm(false);
+        setNewPlaylistName('');
+        setModalError('');
+        
+        // Auto add currentSong
+        await handleAddToPlaylist(newPlaylist.id || newPlaylist.idplaylist);
+      }
+    } catch (err) {
+      console.error('Create playlist error in PlayerBar:', err);
+      setModalError(err.response?.data?.message || 'Không thể tạo playlist');
+    } finally {
+      setCreatingPlaylist(false);
+    }
+  }, [newPlaylistName, userId, loadUserPlaylists, handleAddToPlaylist]);
+
+  // Render modal playlist (copy từ SongList, adapt cho currentSong)
+  const renderPlaylistModal = () => {
+    if (!showPlaylistModal || !currentSong?.id) return null;
+
+    return (
+      <div className="modal-overlay" onClick={closePlaylistModal}>
+        <div className="playlist-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h3>Thêm "{currentSong.title}" vào playlist</h3>
+            <button className="modal-close" onClick={closePlaylistModal}>
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="modal-content">
+            {/* Form tạo playlist mới */}
+            <div className="create-playlist-section">
+              <button
+                className={`btn-create-playlist ${showCreateForm ? 'active' : ''}`}
+                onClick={() => {
+                  if (!showCreateForm) {
+                    setShowCreateForm(true);
+                    setModalError('');
+                  }
+                }}
+              >
+                <Plus size={20} />
+                <span>Tạo playlist mới</span>
+              </button>
+
+              {showCreateForm && (
+                <div className="create-playlist-form">
+                  <input
+                    type="text"
+                    placeholder="Nhập tên playlist"
+                    value={newPlaylistName}
+                    onChange={(e) => setNewPlaylistName(e.target.value)}
+                    autoFocus
+                    disabled={creatingPlaylist}
+                  />
+                  {modalError && <div className="error-message">{modalError}</div>}
+                  <div className="form-actions">
+                    <button
+                      className="btn-cancel"
+                      onClick={() => {
+                        setShowCreateForm(false);
+                        setNewPlaylistName('');
+                        setModalError('');
+                      }}
+                      disabled={creatingPlaylist}
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      className="btn-create"
+                      onClick={handleCreatePlaylist}
+                      disabled={!newPlaylistName.trim() || creatingPlaylist}
+                    >
+                      {creatingPlaylist ? (
+                        <Loader2 size={16} className="spinner" />
+                      ) : (
+                        'Tạo'
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Danh sách playlist */}
+            <div className="playlists-section">
+              <h4>Playlist của bạn</h4>
+              {loadingPlaylists ? (
+                <div className="loading-playlists">
+                  <Loader2 size={24} className="spinner" />
+                  <p>Đang tải playlists...</p>
+                </div>
+              ) : playlists.length > 0 ? (
+                <div className="playlists-grid">
+                  {playlists.map(playlist => (
+                    <div
+                      key={playlist.id || playlist.idplaylist}
+                      className="playlist-item"
+                      onClick={() => handleAddToPlaylist(playlist.id || playlist.idplaylist)}
+                    >
+                      <div className="playlist-avatar" style={{ backgroundColor: getPlaylistColor(playlist.id || playlist.idplaylist) }}>
+                        <ListMusic size={24} />
+                      </div>
+                      <div className="playlist-info">
+                        <h5>{playlist.name || playlist.nameplaylist || 'Playlist không tên'}</h5>
+                        <p>{playlist.songCount || 0} bài hát</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="no-playlists">
+                  <ListMusic size={48} />
+                  <p>Bạn chưa có playlist nào</p>
+                  <p className="subtext">Tạo playlist đầu tiên để lưu bài hát yêu thích</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Helper màu (copy từ SongList)
+  const getPlaylistColor = (id) => {
+    const colors = [
+      '#1DB954', '#FF6B6B', '#4ECDC4', '#FF9F1C', 
+      '#9D4EDD', '#06D6A0', '#118AB2', '#FFD166'
+    ];
+    const index = id ? parseInt(id.toString().slice(-1)) % colors.length : 0;
+    return colors[index];
+  };
 
   if (!currentSong) {
     return (
@@ -123,7 +348,6 @@ function PlayerBar() {
     );
   }
 
-  // Show loading nếu đang fetch user
   if (isLoadingUser) {
     return (
       <div className="player-bar loading">
@@ -157,6 +381,7 @@ function PlayerBar() {
               <button 
                 className={`btn-action ${isFavorited ? 'active' : ''}`}
                 title={isFavorited ? "Bỏ thích" : "Yêu thích"}
+                aria-label={isFavorited ? "Bỏ thích bài hát" : "Yêu thích bài hát"}
                 onClick={toggleFavorite}
                 disabled={favoriteLoading || !userId}
                 style={{
@@ -177,6 +402,13 @@ function PlayerBar() {
               <button 
                 className="btn-action"
                 title="Tùy chọn"
+                aria-label="Thêm vào playlist"
+                onClick={openPlaylistModal}  // Fix: Thêm onClick để mở modal giống SongList
+                disabled={!userId}
+                style={{
+                  opacity: !userId ? 0.5 : 1,
+                  cursor: !userId ? 'not-allowed' : 'pointer'
+                }}
               >
                 <MoreVertical size={18} />
               </button>
@@ -195,6 +427,9 @@ function PlayerBar() {
           <VolumeControl />
         </div>
       </div>
+
+      {/* Modal playlist */}
+      {renderPlaylistModal()}
     </div>
   );
 }

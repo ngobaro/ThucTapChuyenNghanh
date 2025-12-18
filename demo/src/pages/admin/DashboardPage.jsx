@@ -1,5 +1,5 @@
 // FILE: demo/src/pages/admin/DashboardPage.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Plus, Edit, Trash2, Search, X,
   Music, Users, Disc, Tag,
@@ -15,7 +15,7 @@ function DashboardPage() {
   const [activeTab, setActiveTab] = useState('songs');
   const [loading, setLoading] = useState(false);
 
-  const [songs, setSongs] = useState([]);
+  const [rawSongs, setRawSongs] = useState([]);
   const [users, setUsers] = useState([]);
   const [artists, setArtists] = useState([]);
   const [albums, setAlbums] = useState([]);
@@ -50,40 +50,38 @@ function DashboardPage() {
     loadAllData();
   }, []);
 
-  useEffect(() => {
-    if (artists.length > 0 && songs.length > 0) {
-      const songsWithArtists = songs.map(song => {
-        const artist = artists.find(a =>
-          (a.idartist || a.id) === (song.idartist || song.artistId)
-        );
-        return {
-          ...song,
-          artist: artist ? {
-            artistname: artist.artistname || artist.name,
-            idartist: artist.idartist || artist.id
-          } : null
-        };
-      });
-      setSongs(songsWithArtists);
-    }
-  }, [artists, songs]);
+  // Use useMemo to compute enriched data without causing re-renders
+  const songsWithArtists = useMemo(() => {
+    if (artists.length === 0 || rawSongs.length === 0) return rawSongs;
+    return rawSongs.map(song => {
+      const artist = artists.find(a =>
+        (a.idartist || a.id) === (song.idartist || song.artistId)
+      );
+      return {
+        ...song,
+        artist: artist ? {
+          artistname: artist.artistname || artist.name,
+          idartist: artist.idartist || artist.id
+        } : null
+      };
+    });
+  }, [artists, rawSongs]);
 
-  useEffect(() => {
-    if (artists.length > 0 && albums.length > 0) {
-      const albumsWithArtists = albums.map(album => {
-        const artist = artists.find(a =>
-          (a.idartist || a.id) === (album.idartist || album.artistId)
-        );
-        return {
-          ...album,
-          artist: artist ? {
-            name: artist.artistname || artist.name,
-            idartist: artist.idartist || artist.id
-          } : null
-        };
-      });
-      setAlbums(albumsWithArtists);
-    }
+  // Use useMemo for albums too
+  const albumsWithArtists = useMemo(() => {
+    if (artists.length === 0 || albums.length === 0) return albums;
+    return albums.map(album => {
+      const artist = artists.find(a =>
+        (a.idartist || a.id) === (album.idartist || album.artistId)
+      );
+      return {
+        ...album,
+        artist: artist ? {
+          name: artist.artistname || artist.name,
+          idartist: artist.idartist || artist.id
+        } : null
+      };
+    });
   }, [artists, albums]);
 
   const loadAllData = async () => {
@@ -111,7 +109,7 @@ function DashboardPage() {
       else if (response.data.result && Array.isArray(response.data.result)) songsData = response.data.result;
       else if (response.data) songsData = [response.data];
 
-      setSongs(songsData);
+      setRawSongs(songsData);
       setStats(prev => ({ ...prev, totalSongs: songsData.length }));
     } catch (error) {
       console.error('Error loading songs:', error);
@@ -268,6 +266,7 @@ function DashboardPage() {
           title: '',
           idartist: '',
           idalbum: '',
+          idgenre: '',
           duration: '',
           releasedate: new Date().toISOString().split('T')[0],
           views: '0',
@@ -295,6 +294,7 @@ function DashboardPage() {
           title: item.title || '',
           idartist: item.idartist || item.artist?.idartist || item.artist?.id || '',
           idalbum: item.idalbum || '',
+          idgenre: item.idgenre || '',
           duration: item.duration || '',
           releasedate: item.releasedate || '',
           views: item.views || '0',
@@ -363,6 +363,7 @@ function DashboardPage() {
     const data = { ...formData };
 
     if (data.idalbum && data.idalbum !== '') data.idalbum = Number(data.idalbum);
+    if (data.idgenre && data.idgenre !== '') data.idgenre = Number(data.idgenre);
     if (data.releaseyear) data.releaseyear = Number(data.releaseyear);
 
     if (data.duration) {
@@ -409,7 +410,18 @@ function DashboardPage() {
   };
 
   const getFilteredData = () => {
-    const data = { songs, users, artists, albums, genres }[activeTab] || [];
+    let data;
+    switch (activeTab) {
+      case 'songs':
+        data = songsWithArtists;
+        break;
+      case 'albums':
+        data = albumsWithArtists;
+        break;
+      default:
+        data = { users, artists, albums, genres }[activeTab] || [];
+    }
+
     if (!searchTerm) return data;
 
     const lower = searchTerm.toLowerCase();
@@ -417,7 +429,7 @@ function DashboardPage() {
       switch (activeTab) {
         case 'songs':
           return (item.title || '').toLowerCase().includes(lower) ||
-                 (item.artist?.artistname || '').toLowerCase().includes(lower);
+            (item.artist?.artistname || '').toLowerCase().includes(lower);
         case 'users':
           return (item.username || '').toLowerCase().includes(lower) || (item.email || '').toLowerCase().includes(lower);
         case 'artists':
@@ -435,7 +447,7 @@ function DashboardPage() {
   const getTableColumns = () => {
     switch (activeTab) {
       case 'songs':
-        return ['ID', 'Tiêu đề', 'Nghệ sĩ', 'Album', 'Thời lượng', 'Lượt nghe', 'Actions'];
+        return ['ID', 'Tiêu đề', 'Nghệ sĩ', 'Album', 'Thể loại', 'Thời lượng', 'Lượt nghe', 'Actions'];
       case 'users':
         return ['ID', 'Username', 'Email', 'Vai trò', 'Ngày tạo', 'Actions'];
       case 'artists':
@@ -456,13 +468,13 @@ function DashboardPage() {
           <>
             <div className="form-group">
               <label>Tiêu đề *</label>
-              <input type="text" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Nhập tiêu đề bài hát" className={formErrors.title ? 'error' : ''} />
+              <input type="text" value={formData.title || ''} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Nhập tiêu đề bài hát" className={formErrors.title ? 'error' : ''} />
               {formErrors.title && <div className="error-text">{formErrors.title}</div>}
             </div>
 
             <div className="form-group">
               <label>Nghệ sĩ *</label>
-              <select value={formData.idartist || ''} onChange={e => setFormData({...formData, idartist: e.target.value})} className={formErrors.idartist ? 'error' : ''}>
+              <select value={formData.idartist || ''} onChange={e => setFormData({ ...formData, idartist: e.target.value })} className={formErrors.idartist ? 'error' : ''}>
                 <option value="">-- Chọn nghệ sĩ --</option>
                 {artists.map(artist => (
                   <option key={artist.idartist || artist.id} value={artist.idartist || artist.id}>
@@ -475,9 +487,9 @@ function DashboardPage() {
 
             <div className="form-group">
               <label>Album (tùy chọn)</label>
-              <select value={formData.idalbum || ''} onChange={e => setFormData({...formData, idalbum: e.target.value})}>
+              <select value={formData.idalbum || ''} onChange={e => setFormData({ ...formData, idalbum: e.target.value })}>
                 <option value="">-- Không thuộc album --</option>
-                {albums.map(album => (
+                {albumsWithArtists.map(album => (
                   <option key={album.idalbum || album.id} value={album.idalbum || album.id}>
                     {album.albumname || album.title || 'Unknown'}
                   </option>
@@ -486,36 +498,48 @@ function DashboardPage() {
             </div>
 
             <div className="form-group">
+              <label>Thể loại (tùy chọn)</label>
+              <select value={formData.idgenre || ''} onChange={e => setFormData({ ...formData, idgenre: e.target.value })}>
+                <option value="">-- Không có thể loại --</option>
+                {genres.map(genre => (
+                  <option key={genre.idgenre || genre.id} value={genre.idgenre || genre.id}>
+                    {genre.genrename || genre.name || 'Unknown'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
               <label>Thời lượng *</label>
-              <input type="text" value={formData.duration || ''} onChange={e => setFormData({...formData, duration: e.target.value})} placeholder="VD: 04:12" className={formErrors.duration ? 'error' : ''} />
+              <input type="text" value={formData.duration || ''} onChange={e => setFormData({ ...formData, duration: e.target.value })} placeholder="VD: 04:12" className={formErrors.duration ? 'error' : ''} />
               {formErrors.duration && <div className="error-text">{formErrors.duration}</div>}
             </div>
 
             <div className="form-group">
               <label>Ngày phát hành (tùy chọn)</label>
-              <input type="date" value={formData.releasedate || ''} onChange={e => setFormData({...formData, releasedate: e.target.value})} />
+              <input type="date" value={formData.releasedate || ''} onChange={e => setFormData({ ...formData, releasedate: e.target.value })} />
             </div>
 
             <div className="form-group">
               <label>Lượt xem *</label>
-              <input type="text" value={formData.views || '0'} onChange={e => setFormData({...formData, views: e.target.value})} placeholder="VD: 0" className={formErrors.views ? 'error' : ''} />
+              <input type="text" value={formData.views || '0'} onChange={e => setFormData({ ...formData, views: e.target.value })} placeholder="VD: 0" className={formErrors.views ? 'error' : ''} />
               {formErrors.views && <div className="error-text">{formErrors.views}</div>}
             </div>
 
             <div className="form-group">
               <label>Ảnh bìa (tùy chọn)</label>
-              <input type="text" value={formData.avatar || ''} onChange={e => setFormData({...formData, avatar: e.target.value})} placeholder="URL ảnh bìa" />
+              <input type="text" value={formData.avatar || ''} onChange={e => setFormData({ ...formData, avatar: e.target.value })} placeholder="URL ảnh bìa" />
             </div>
 
             <div className="form-group">
               <label>Đường dẫn file *</label>
-              <input type="text" value={formData.path || ''} onChange={e => setFormData({...formData, path: e.target.value})} placeholder="URL file mp3" className={formErrors.path ? 'error' : ''} />
+              <input type="text" value={formData.path || ''} onChange={e => setFormData({ ...formData, path: e.target.value })} placeholder="URL file mp3" className={formErrors.path ? 'error' : ''} />
               {formErrors.path && <div className="error-text">{formErrors.path}</div>}
             </div>
 
             <div className="form-group">
               <label>Lời bài hát *</label>
-              <textarea value={formData.lyrics || ''} onChange={e => setFormData({...formData, lyrics: e.target.value})} placeholder="Nhập lời bài hát" rows={4} className={formErrors.lyrics ? 'error' : ''} />
+              <textarea value={formData.lyrics || ''} onChange={e => setFormData({ ...formData, lyrics: e.target.value })} placeholder="Nhập lời bài hát" rows={4} className={formErrors.lyrics ? 'error' : ''} />
               {formErrors.lyrics && <div className="error-text">{formErrors.lyrics}</div>}
             </div>
           </>
@@ -526,27 +550,27 @@ function DashboardPage() {
           <>
             <div className="form-group">
               <label>Username *</label>
-              <input type="text" value={formData.username || ''} onChange={e => setFormData({...formData, username: e.target.value})} placeholder="Nhập username" className={formErrors.username ? 'error' : ''} disabled={showEditModal} />
+              <input type="text" value={formData.username || ''} onChange={e => setFormData({ ...formData, username: e.target.value })} placeholder="Nhập username" className={formErrors.username ? 'error' : ''} disabled={showEditModal} />
               {formErrors.username && <div className="error-text">{formErrors.username}</div>}
             </div>
 
             <div className="form-group">
               <label>Email *</label>
-              <input type="email" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="Nhập email" className={formErrors.email ? 'error' : ''} />
+              <input type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="Nhập email" className={formErrors.email ? 'error' : ''} />
               {formErrors.email && <div className="error-text">{formErrors.email}</div>}
             </div>
 
             {showCreateModal && (
               <div className="form-group">
                 <label>Password *</label>
-                <input type="password" value={formData.password || ''} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="Nhập mật khẩu" className={formErrors.password ? 'error' : ''} />
+                <input type="password" value={formData.password || ''} onChange={e => setFormData({ ...formData, password: e.target.value })} placeholder="Nhập mật khẩu" className={formErrors.password ? 'error' : ''} />
                 {formErrors.password && <div className="error-text">{formErrors.password}</div>}
               </div>
             )}
 
             <div className="form-group">
               <label>Vai trò</label>
-              <select value={formData.role || 'USER'} onChange={e => setFormData({...formData, role: e.target.value})}>
+              <select value={formData.role || 'USER'} onChange={e => setFormData({ ...formData, role: e.target.value })}>
                 <option value="USER">USER</option>
                 <option value="ADMIN">ADMIN</option>
               </select>
@@ -559,13 +583,13 @@ function DashboardPage() {
           <>
             <div className="form-group">
               <label>Tên nghệ sĩ *</label>
-              <input type="text" value={formData.artistname || ''} onChange={e => setFormData({...formData, artistname: e.target.value})} placeholder="Nhập tên nghệ sĩ" className={formErrors.artistname ? 'error' : ''} />
+              <input type="text" value={formData.artistname || ''} onChange={e => setFormData({ ...formData, artistname: e.target.value })} placeholder="Nhập tên nghệ sĩ" className={formErrors.artistname ? 'error' : ''} />
               {formErrors.artistname && <div className="error-text">{formErrors.artistname}</div>}
             </div>
 
             <div className="form-group">
               <label>Mô tả</label>
-              <textarea value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Nhập mô tả về nghệ sĩ" rows={3} />
+              <textarea value={formData.description || ''} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Nhập mô tả về nghệ sĩ" rows={3} />
             </div>
           </>
         );
@@ -575,18 +599,18 @@ function DashboardPage() {
           <>
             <div className="form-group">
               <label>Tên album *</label>
-              <input type="text" value={formData.albumname || ''} onChange={e => setFormData({...formData, albumname: e.target.value})} placeholder="Nhập tên album" className={formErrors.albumname ? 'error' : ''} />
+              <input type="text" value={formData.albumname || ''} onChange={e => setFormData({ ...formData, albumname: e.target.value })} placeholder="Nhập tên album" className={formErrors.albumname ? 'error' : ''} />
               {formErrors.albumname && <div className="error-text">{formErrors.albumname}</div>}
             </div>
 
             <div className="form-group">
               <label>Năm phát hành</label>
-              <input type="number" value={formData.releaseyear || new Date().getFullYear()} onChange={e => setFormData({...formData, releaseyear: parseInt(e.target.value) || ''})} placeholder="2024" />
+              <input type="number" value={formData.releaseyear || new Date().getFullYear()} onChange={e => setFormData({ ...formData, releaseyear: parseInt(e.target.value) || '' })} placeholder="2024" />
             </div>
 
             <div className="form-group">
               <label>Nghệ sĩ</label>
-              <select value={formData.idartist || ''} onChange={e => setFormData({...formData, idartist: e.target.value})}>
+              <select value={formData.idartist || ''} onChange={e => setFormData({ ...formData, idartist: e.target.value })}>
                 <option value="">-- Chọn nghệ sĩ --</option>
                 {artists.map(artist => (
                   <option key={artist.idartist || artist.id} value={artist.idartist || artist.id}>
@@ -602,7 +626,7 @@ function DashboardPage() {
         return (
           <div className="form-group">
             <label>Tên thể loại *</label>
-            <input type="text" value={formData.genrename || ''} onChange={e => setFormData({...formData, genrename: e.target.value})} placeholder="Nhập tên thể loại" className={formErrors.genrename ? 'error' : ''} />
+            <input type="text" value={formData.genrename || ''} onChange={e => setFormData({ ...formData, genrename: e.target.value })} placeholder="Nhập tên thể loại" className={formErrors.genrename ? 'error' : ''} />
             {formErrors.genrename && <div className="error-text">{formErrors.genrename}</div>}
           </div>
         );
@@ -615,12 +639,15 @@ function DashboardPage() {
   const renderTableRow = (item) => {
     switch (activeTab) {
       case 'songs':
+        const genre = genres.find(g => (g.idgenre || g.id) === item.idgenre);
+        const album = albumsWithArtists.find(a => (a.idalbum || a.id) === item.idalbum);
         return (
           <tr key={item.songId || item.id}>
             <td>{item.songId || item.id}</td>
             <td>{item.title || 'Không có tiêu đề'}</td>
-            <td>{item.artist?.artistname || item.artist || 'Unknown'}</td>
-            <td>{item.album?.albumname || '-'}</td>
+            <td>{item.artist?.artistname || 'Unknown'}</td>
+            <td>{album ? (album.albumname || album.title) : '-'}</td>
+            <td>{genre ? (genre.genrename || genre.name) : '-'}</td>
             <td>{item.duration || '00:00'}</td>
             <td>{item.views || 0}</td>
             <td className="actions-cell">

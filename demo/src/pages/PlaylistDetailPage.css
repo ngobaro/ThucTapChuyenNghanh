@@ -1,0 +1,209 @@
+/* PlaylistDetailPage.css */
+
+:root {
+  --bg-dark: #121212;
+  --bg-light: #181818;
+  --bg-card: #282828;
+  --text-main: #ffffff;
+  --text-secondary: #b3b3b3;
+  --spotify-green: #1db954;
+  --spotify-hover: #1ed760;
+  --transition-speed: 0.3s;
+}
+
+.playlist-detail-page {
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #404040 0%, var(--bg-dark) 40%);
+  color: var(--text-main);
+  padding: 24px 32px;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Loading State */
+.playlist-detail-page.loading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 80vh;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--spotify-green);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Header Section */
+.playlist-header {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  padding-bottom: 30px;
+  margin-top: 20px;
+}
+
+.playlist-cover-large {
+  width: 232px;
+  height: 232px;
+  min-width: 232px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.playlist-icon {
+  font-size: 80px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.playlist-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.playlist-badge {
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.playlist-title {
+  font-size: 72px;
+  font-weight: 900;
+  margin: 0;
+  letter-spacing: -2px;
+}
+
+.playlist-description {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 8px 0;
+}
+
+.playlist-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.meta-item:not(:last-child)::after {
+  content: "•";
+  margin-left: 12px;
+  color: var(--text-secondary);
+}
+
+/* Controls Section */
+.playlist-controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 24px 0;
+}
+
+.btn-play-large {
+  background-color: var(--spotify-green);
+  border: none;
+  border-radius: 50px;
+  padding: 14px 32px;
+  color: black;
+  font-weight: bold;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.btn-play-large:hover {
+  transform: scale(1.05);
+  background-color: var(--spotify-hover);
+}
+
+.btn-shuffle, .btn-like, .btn-more {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.btn-shuffle:hover, .btn-like:hover, .btn-more:hover {
+  color: white;
+}
+
+/* Content Section */
+.playlist-content {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+}
+
+.section-header h2 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.song-count {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.no-songs {
+  text-align: center;
+  padding: 60px 0;
+  color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .playlist-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .playlist-title {
+    font-size: 36px;
+  }
+  
+  .playlist-meta {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .playlist-cover-large {
+    width: 192px;
+    height: 192px;
+    min-width: 192px;
+  }
+}
