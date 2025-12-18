@@ -35,7 +35,7 @@ function AppRoutes() {
         <Route path="albums" element={<AlbumsPage />} />
         <Route path="album/:id" element={<AlbumDetailPage />} />
         <Route path="playlists" element={<LibraryPage />} />
-        {/* <Route path="playlist/:id" element={<PlaylistDetailPage />} /> */}
+        <Route path="playlist/:id" element={<PlaylistDetailPage />} />
         <Route path="genres" element={<GenresPage />} />
         <Route path="genre/:id" element={<GenrePage />} />
         <Route path="profile" element={<ProfilePage />} />

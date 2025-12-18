@@ -745,3 +745,22 @@
     padding: 20px;
   }
 }
+
+.delete-btn {
+  color: #ff4757; /* Red for delete */
+}
+.btn-delete-playlist {
+  background:  #034423;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.btn-delete-playlist:hover {
+  background: #79b869;
+}
+.btn-delete-playlist:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}

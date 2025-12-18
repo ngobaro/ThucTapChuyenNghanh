@@ -1,19 +1,25 @@
-import { Play, Heart, MoreVertical, Loader2, Plus, X, ListMusic } from 'lucide-react';
+// FILE: demo/src/components/music/SongList.jsx
+// Updated: Added delete song functionality for playlists (trash icon in actions). Only for logged-in users/owners.
+// Backend call DELETE /playlists/{playlistId}/songs/{songId}. Confirm dialog. Refresh songs after delete.
+
+import { Play, Heart, MoreVertical, Loader2, Trash2 } from 'lucide-react';
 import { usePlayer } from '../../context/PlayerContext';
 import { formatTime } from '../../utils/formatTime';
 import { useAudioDuration } from '../../hooks/useAudioDuration';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
 import { API_ENDPOINTS } from '../../utils/constants';
 import './SongList.css';
 
-function SongList({ songs, title }) {
+function SongList({ songs, title, showGenre = false, playlistId = null }) { // Add playlistId prop for delete
   const { playQueue, currentSong } = usePlayer();
   const [favoriteStates, setFavoriteStates] = useState({});
   const [favoriteLoading, setFavoriteLoading] = useState({});
   const [userId, setUserId] = useState(null);
   const [favoritesLoaded, setFavoritesLoaded] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
+
+  // Playlist modal states (for add song)
   const [playlists, setPlaylists] = useState([]);
   const [loadingPlaylists, setLoadingPlaylists] = useState(false);
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
@@ -22,6 +28,9 @@ function SongList({ songs, title }) {
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [creatingPlaylist, setCreatingPlaylist] = useState(false);
   const [modalError, setModalError] = useState('');
+
+  // Delete states
+  const [deletingSong, setDeletingSong] = useState(null); // { songId, playlistId }
 
   // Fetch userId
   useEffect(() => {
@@ -34,7 +43,6 @@ function SongList({ songs, title }) {
           return;
         }
       }
-      
       setIsLoadingUser(true);
       try {
         const res = await api.get(API_ENDPOINTS.MY_INFO);
@@ -45,7 +53,7 @@ function SongList({ songs, title }) {
           localStorage.setItem('userId', fetchedId.toString());
         }
       } catch (err) {
-        console.error('Fetch user profile error:', err);
+        console.error('Fetch user profile error in SongList:', err);
         if (err.response?.status === 401) {
           localStorage.clear();
           window.location.href = '/login';
@@ -57,63 +65,28 @@ function SongList({ songs, title }) {
     fetchUserProfile();
   }, []);
 
-  // Load playlists (dùng endpoint chung, backend filter theo token)
-  const loadUserPlaylists = useCallback(async () => {
-    if (!userId) return;
-    
-    setLoadingPlaylists(true);
-    try {
-      const res = await api.get(API_ENDPOINTS.PLAYLISTS); // Fix: Không cần userId
-      const loadedPlaylists = res.data?.result || res.data || [];
-      console.log('Loaded playlists in SongList:', loadedPlaylists); // Debug: Check chỉ của user
-      setPlaylists(loadedPlaylists);
-    } catch (err) {
-      console.error('Load playlists error:', err);
-      if (err.response?.status === 401) {
-        localStorage.clear();
-        window.location.href = '/login';
-      }
-      setPlaylists([]); // Fallback empty
-    } finally {
-      setLoadingPlaylists(false);
-    }
-  }, [userId]);
-
-  // Auto load playlists khi có userId (load sớm, không chờ modal)
-  useEffect(() => {
-    if (userId) {
-      loadUserPlaylists();
-    }
-  }, [userId, loadUserPlaylists]);
-
   // Load favorites
   useEffect(() => {
     if (userId && songs?.length > 0 && !favoritesLoaded) {
       loadFavorites();
     }
-  }, [userId, songs?.length]);
+  }, [userId, songs?.length, favoritesLoaded]);
 
   const loadFavorites = useCallback(async () => {
     try {
       const res = await api.get(API_ENDPOINTS.USER_FAVORITES(userId));
       const favSongs = res.data?.result || [];
-      const favIds = favSongs.map(song => song.songId || song.id); // Fallback id
+      const favIds = favSongs.map(song => song.songId || song.id);
       const map = {};
-      favIds.forEach(id => {
-        map[id] = true;
-      });
+      favIds.forEach(id => map[id] = true);
       const result = {};
-      songs.forEach(song => {
-        result[song.id] = !!map[song.id];
-      });
+      songs.forEach(song => result[song.id] = !!map[song.id]);
       setFavoriteStates(result);
       setFavoritesLoaded(true);
     } catch (err) {
-      console.error('Load favorites error:', err);
+      console.error('Load favorites error in SongList:', err);
       const reset = {};
-      songs.forEach(song => {
-        reset[song.id] = false;
-      });
+      songs.forEach(song => reset[song.id] = false);
       setFavoriteStates(reset);
       setFavoritesLoaded(true);
     }
@@ -134,40 +107,76 @@ function SongList({ songs, title }) {
       } else {
         await api.post(API_ENDPOINTS.ADD_FAVORITE(userId, songId));
       }
-      setFavoriteStates(prev => ({
-        ...prev,
-        [songId]: !isFavorited
-      }));
+      setFavoriteStates(prev => ({ ...prev, [songId]: !isFavorited }));
     } catch (err) {
-      console.error('Toggle favorite error:', err);
+      console.error('Toggle favorite error in SongList:', err);
       alert('Có lỗi khi cập nhật yêu thích');
     } finally {
       setFavoriteLoading(prev => ({ ...prev, [songId]: false }));
     }
   };
 
-  // Mở modal playlist
+  // Delete song from playlist
+  const handleDeleteSong = async (songId) => {
+    if (!userId || !playlistId) {
+      alert('Vui lòng đăng nhập và chọn playlist hợp lệ!');
+      return;
+    }
+    if (deletingSong?.songId === songId) return;
+    if (!confirm('Bạn có chắc muốn xóa bài hát này khỏi playlist?')) return;
+
+    setDeletingSong({ songId, playlistId });
+    try {
+      await api.delete(API_ENDPOINTS.REMOVE_SONG_FROM_PLAYLIST(playlistId, songId));
+      alert('Đã xóa bài hát khỏi playlist!');
+      // Refresh songs (re-fetch or filter local if possible)
+      window.location.reload(); // Simple refresh, or refetch in parent
+    } catch (err) {
+      console.error('Delete song error:', err);
+      alert('Có lỗi khi xóa bài hát: ' + (err.response?.data?.message || 'Thử lại'));
+    } finally {
+      setDeletingSong(null);
+    }
+  };
+
+  // Load playlists for add modal
+  const loadUserPlaylists = useCallback(async () => {
+    if (!userId) return;
+    setLoadingPlaylists(true);
+    try {
+      const res = await api.get(API_ENDPOINTS.PLAYLISTS);
+      const loadedPlaylists = res.data?.result || res.data || [];
+      setPlaylists(loadedPlaylists);
+    } catch (err) {
+      console.error('Load playlists error in SongList:', err);
+      setPlaylists([]);
+    } finally {
+      setLoadingPlaylists(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      loadUserPlaylists();
+    }
+  }, [userId, loadUserPlaylists]);
+
   const openPlaylistModal = async (songId, e) => {
     e.stopPropagation();
-    
     if (!userId) {
       alert('Vui lòng đăng nhập để thêm vào playlist!');
       return;
     }
-
     setCurrentSongId(songId);
     setShowPlaylistModal(true);
     setShowCreateForm(false);
     setNewPlaylistName('');
     setModalError('');
-
-    // Reload nếu empty (nhưng giờ load sớm rồi)
     if (playlists.length === 0 && !loadingPlaylists) {
       await loadUserPlaylists();
     }
   };
 
-  // Đóng modal
   const closePlaylistModal = () => {
     setShowPlaylistModal(false);
     setCurrentSongId(null);
@@ -176,64 +185,54 @@ function SongList({ songs, title }) {
     setModalError('');
   };
 
-  // Thêm vào playlist
   const handleAddToPlaylist = async (playlistId) => {
     if (!currentSongId) return;
-    
     try {
       await api.post(API_ENDPOINTS.ADD_SONG_TO_PLAYLIST(playlistId, currentSongId));
       alert('Đã thêm bài hát vào playlist!');
       closePlaylistModal();
-      await loadUserPlaylists(); // Refresh songCount nếu backend hỗ trợ
+      await loadUserPlaylists();
     } catch (err) {
-      console.error('Add to playlist error:', err);
-      alert('Không thể thêm bài hát vào playlist');
+      console.error('Add to playlist error in SongList:', err);
+      const msg = err.response?.data?.message || 'Không thể thêm bài hát vào playlist';
+      if (msg.includes('Already') || msg.includes('existed') || msg.includes('EXISTED') || msg.includes('Song Already')) {
+        alert('Bài hát đã có trong playlist này!');
+      } else {
+        alert(msg);
+      }
     }
   };
 
-  // Tạo playlist mới (bỏ userId)
   const handleCreatePlaylist = async () => {
     const trimmedName = newPlaylistName.trim();
     if (!trimmedName) {
       setModalError('Vui lòng nhập tên playlist');
       return;
     }
-
     setCreatingPlaylist(true);
     try {
       const createRes = await api.post(API_ENDPOINTS.PLAYLISTS, {
-        name: trimmedName, // Hoặc nameplaylist nếu backend yêu cầu
+        nameplaylist: trimmedName,
         description: ''
-        // Bỏ userId, backend tự set từ token
       });
-      
       const newPlaylist = createRes.data?.result || createRes.data;
       if (newPlaylist?.id || newPlaylist?.idplaylist) {
         await loadUserPlaylists();
         setShowCreateForm(false);
         setNewPlaylistName('');
         setModalError('');
-        
-        // Auto add song
         await handleAddToPlaylist(newPlaylist.id || newPlaylist.idplaylist);
       }
     } catch (err) {
-      console.error('Create playlist error:', err);
+      console.error('Create playlist error in SongList:', err);
       setModalError(err.response?.data?.message || 'Không thể tạo playlist');
     } finally {
       setCreatingPlaylist(false);
     }
   };
 
-  // Play song
-  const handlePlaySong = (song, index) => {
-    playQueue(songs, index);
-  };
-
-  // Render modal playlist
   const renderPlaylistModal = () => {
     if (!showPlaylistModal || !currentSongId) return null;
-
     return (
       <div className="modal-overlay" onClick={closePlaylistModal}>
         <div className="playlist-modal" onClick={(e) => e.stopPropagation()}>
@@ -243,9 +242,7 @@ function SongList({ songs, title }) {
               <X size={24} />
             </button>
           </div>
-
           <div className="modal-content">
-            {/* Form tạo playlist mới */}
             <div className="create-playlist-section">
               <button
                 className={`btn-create-playlist ${showCreateForm ? 'active' : ''}`}
@@ -259,7 +256,6 @@ function SongList({ songs, title }) {
                 <Plus size={20} />
                 <span>Tạo playlist mới</span>
               </button>
-
               {showCreateForm && (
                 <div className="create-playlist-form">
                   <input
@@ -298,8 +294,6 @@ function SongList({ songs, title }) {
                 </div>
               )}
             </div>
-
-            {/* Danh sách playlist */}
             <div className="playlists-section">
               <h4>Playlist của bạn</h4>
               {loadingPlaylists ? (
@@ -320,7 +314,7 @@ function SongList({ songs, title }) {
                       </div>
                       <div className="playlist-info">
                         <h5>{playlist.name || playlist.nameplaylist || 'Playlist không tên'}</h5>
-                        <p>{playlist.songCount || 0} bài hát</p>
+                        <p>{(playlist.songCount || 0)} bài hát</p>
                       </div>
                     </div>
                   ))}
@@ -339,7 +333,6 @@ function SongList({ songs, title }) {
     );
   };
 
-  // Helper function để tạo màu cho playlist
   const getPlaylistColor = (id) => {
     const colors = [
       '#1DB954', '#FF6B6B', '#4ECDC4', '#FF9F1C', 
@@ -347,6 +340,11 @@ function SongList({ songs, title }) {
     ];
     const index = id ? parseInt(id.toString().slice(-1)) % colors.length : 0;
     return colors[index];
+  };
+
+  // Play song
+  const handlePlaySong = (song, index) => {
+    playQueue(songs, index);
   };
 
   if (!songs || songs.length === 0) {
@@ -380,8 +378,8 @@ function SongList({ songs, title }) {
           <span className="col-title">Tiêu đề</span>
           <span className="col-artist">Nghệ sĩ</span>
           <span className="col-album">Album</span>
-          <span className="col-listened">Lượt nghe</span>
           <span className="col-duration">Thời lượng</span>
+          {showGenre && <span className="col-genre">Thể loại</span>}
           <span className="col-actions"></span>
         </div>
         {songs.map((song, index) => {
@@ -389,19 +387,13 @@ function SongList({ songs, title }) {
           const isCurrentSong = currentSong?.id === songId;
           const isFavorited = !!favoriteStates[songId];
           const isLoading = favoriteLoading[songId];
-          const isDisabled = isLoading;
+          const isDeleting = deletingSong?.songId === songId;
           const { duration, loading: durationLoading } = useAudioDuration(song.audioUrl);
           const displayDuration =
             duration > 0
               ? duration
               : parseDuration(song.duration);
           
-          // Format lượt nghe
-          const listenedCount = song.listenCount || 0;
-          const formattedListened = listenedCount >= 1000 
-            ? `${(listenedCount / 1000).toFixed(1)}K` 
-            : listenedCount.toString();
-
           return (
             <div
               key={songId}
@@ -424,22 +416,25 @@ function SongList({ songs, title }) {
               </div>
               <span className="col-artist">{song.artist}</span>
               <span className="col-album">{song.album || 'Single'}</span>
-              <span className="col-listened">{formattedListened}</span>
               <span className="col-duration">
                 {durationLoading ? <Loader2 size={14} className="spinner" /> : formatTime(displayDuration)}
               </span>
+              {showGenre && (
+                <span className="col-genre" style={{ color: song.genreColor }}>
+                  {song.genreName}
+                </span>
+              )}
               <div
                 className="col-actions"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Nút yêu thích */}
                 <button
                   className={`btn-action ${isFavorited ? 'active' : ''} ${!userId ? 'disabled' : ''}`}
                   onClick={() => toggleFavorite(songId)}
-                  disabled={isDisabled}
+                  disabled={isLoading}
                   style={{
-                    opacity: isDisabled ? 0.5 : 1,
-                    cursor: isDisabled ? 'not-allowed' : (!userId ? 'default' : 'pointer')
+                    opacity: isLoading ? 0.5 : 1,
+                    cursor: isLoading ? 'not-allowed' : (!userId ? 'default' : 'pointer')
                   }}
                 >
                   {isLoading ? (
@@ -451,8 +446,6 @@ function SongList({ songs, title }) {
                     />
                   )}
                 </button>
-
-                {/* Nút menu (3 chấm) */}
                 <button 
                   className="btn-action"
                   onClick={(e) => openPlaylistModal(songId, e)}
@@ -464,18 +457,41 @@ function SongList({ songs, title }) {
                 >
                   <MoreVertical size={18} />
                 </button>
+                {playlistId && userId && (
+                  <button 
+                    className="btn-action delete-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteSong(songId);
+                    }}
+                    disabled={isDeleting}
+                    style={{
+                      opacity: isDeleting ? 0.5 : 1,
+                      cursor: isDeleting ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {isDeleting ? (
+                      <Loader2 size={18} className="spinner" />
+                    ) : (
+                      <Trash2 size={18} />
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Modal playlist */}
+      {/* Modal playlist - add song */}
       {renderPlaylistModal()}
     </div>
   );
 }
 
+/* =======================
+   PARSE DURATION
+======================== */
 const parseDuration = (duration) => {
   if (typeof duration === 'number') return duration;
   if (typeof duration === 'string' && duration.includes(':')) {

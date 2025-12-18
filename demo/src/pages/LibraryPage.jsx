@@ -1,4 +1,3 @@
-// FILE: demo/src/pages/LibraryPage.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ListMusic, Heart, Plus, X, Loader2 } from 'lucide-react';
@@ -24,6 +23,7 @@ function LibraryPage() {
   const loadLibraryData = async () => {
     try {
       setLoading(true);
+      setError('');
 
       // Lấy userId để load favorites (nếu cần)
       let userId = localStorage.getItem('userId');
@@ -41,6 +41,21 @@ function LibraryPage() {
       // Load playlists của user hiện tại (backend tự xử lý từ token)
       const playlistRes = await api.get(API_ENDPOINTS.PLAYLISTS); // GET /playlists
       const playlistData = playlistRes.data.result || playlistRes.data || [];
+      console.log('Loaded playlists in LibraryPage:', playlistData.length, 'items'); // Debug
+
+      // Fetch songCount cho mỗi playlist (parallel)
+      const playlistsWithCount = await Promise.all(
+        playlistData.map(async (p) => {
+          try {
+            const songsRes = await api.get(API_ENDPOINTS.PLAYLIST_SONGS(p.idplaylist || p.id));
+            const songCount = (songsRes.data.result || songsRes.data || []).length;
+            return { ...p, songCount }; // Add songCount
+          } catch (err) {
+            console.warn(`Failed to fetch song count for playlist ${p.id}:`, err);
+            return { ...p, songCount: 0 };
+          }
+        })
+      );
 
       // Load số lượng favorites
       let favCount = 0;
@@ -55,10 +70,10 @@ function LibraryPage() {
 
       // Random màu cho playlist card
       const colors = ['#1DB954', '#FF6B6B', '#4ECDC4', '#FF9F1C', '#9D4EDD', '#06D6A0', '#118AB2', '#FFD166'];
-      const enrichedPlaylists = playlistData.map((p, i) => ({
+      const enrichedPlaylists = playlistsWithCount.map((p, i) => ({
         id: p.idplaylist || p.id,
         name: p.nameplaylist || p.name || 'Playlist không tên',
-        songCount: p.songCount || 0, // Backend có thể trả thêm field này, nếu không thì 0
+        songCount: p.songCount || 0, // Now from fetch
         color: colors[i % colors.length]
       }));
 
@@ -66,11 +81,10 @@ function LibraryPage() {
       setFavoriteCount(favCount);
     } catch (error) {
       console.error('Error loading library data:', error);
+      setError('Không thể tải dữ liệu thư viện. Vui lòng thử lại.');
       if (error.response?.status === 401) {
         localStorage.clear();
         window.location.href = '/login';
-      } else {
-        alert('Không thể tải dữ liệu thư viện. Vui lòng thử lại.');
       }
     } finally {
       setLoading(false);
@@ -170,7 +184,7 @@ function LibraryPage() {
                 </div>
                 <div className="playlist-info">
                   <h3>{p.name}</h3>
-                  <p>{p.songCount} bài hát</p>
+                  <p>{p.songCount} bài hát</p> {/* Now accurate */}
                 </div>
               </div>
             ))}

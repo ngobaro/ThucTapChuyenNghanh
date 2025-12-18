@@ -29,7 +29,7 @@ export const API_ENDPOINTS = {
   PLAYLIST_SONGS: (playlistId) => `/playlists/${playlistId}/songs`,
   ADD_SONG_TO_PLAYLIST: (playlistId, songId) => `/playlists/${playlistId}/songs/${songId}`,
   REMOVE_SONG_FROM_PLAYLIST: (playlistId, songId) => `/playlists/${playlistId}/songs/${songId}`,
-  PLAYLIST_MY_INFO: '/playlists/myInfo',
+  PLAYLIST_MY_INFO: '/playlists/myInfo',  // Nếu có, optional
   
   // Albums
   ALBUMS: '/albums',
@@ -39,10 +39,10 @@ export const API_ENDPOINTS = {
   ARTISTS: '/artists',
   ARTIST_BY_ID: (id) => `/artists/${id}`,
   
-  // Artist Songs (nếu có endpoint này)
+  // Artist Songs
   ARTIST_SONGS: {
     BASE: '/artistsongs',
-    BY_ARTIST: (artistId) => `/artistsongs/artist/${artistId}`,
+    BY_ARTIST: (artistId) => `/artistsongs/artist/${artistId}`,  // Nếu có, optional
     BY_SONG: (songId) => `/artistsongs/song/${songId}`,
   },
   
@@ -50,6 +50,8 @@ export const API_ENDPOINTS = {
   GENRES: '/genres',
   GENRE_BY_ID: (id) => `/genres/${id}`,
   GENRE_SONGS: (genreId) => `/genres/${genreId}/songs`,
+  ADD_SONG_TO_GENRE: (genreId, songId) => `/genres/${genreId}/songs/${songId}`,  // Admin
+  REMOVE_SONG_FROM_GENRE: (genreId, songId) => `/genres/${genreId}/songs/${songId}`,  // Admin
   
   // Listen History
   LISTEN_HISTORIES: '/listenhistories',

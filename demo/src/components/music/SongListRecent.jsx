@@ -1,6 +1,6 @@
 // FILE: demo/src/components/music/SongListRecent.jsx
 
-import { Play, Heart, MoreVertical, Loader2 } from 'lucide-react';
+import { Play, Heart, MoreVertical, Loader2, Plus, X, ListMusic } from 'lucide-react';
 import { usePlayer } from '../../context/PlayerContext';
 import { formatTime } from '../../utils/formatTime';
 import { useAudioDuration } from '../../hooks/useAudioDuration';
@@ -17,11 +17,20 @@ function SongListRecent({ songs, title }) {
   const [favoritesLoaded, setFavoritesLoaded] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
 
-  // Fetch userId từ localStorage HOẶC /users/myInfo nếu null
+  // Playlist modal states (copy from SongList for 3 dots functionality)
+  const [playlists, setPlaylists] = useState([]);
+  const [loadingPlaylists, setLoadingPlaylists] = useState(false);
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const [currentSongId, setCurrentSongId] = useState(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [creatingPlaylist, setCreatingPlaylist] = useState(false);
+  const [modalError, setModalError] = useState('');
+
+  // Fetch userId
   useEffect(() => {
     const fetchUserProfile = async () => {
       const storedUserId = localStorage.getItem('userId');
-      console.log('Stored userId in SongListRecent:', storedUserId); // Debug
       if (storedUserId) {
         const parsedId = Number(storedUserId);
         if (!isNaN(parsedId)) {
@@ -29,29 +38,14 @@ function SongListRecent({ songs, title }) {
           return;
         }
       }
-      // Fetch nếu null
       setIsLoadingUser(true);
       try {
-        const res = await api.get(API_ENDPOINTS.MY_INFO); // GET /users/myInfo
+        const res = await api.get(API_ENDPOINTS.MY_INFO);
         const userData = res.data?.result || res.data;
-        console.log('Fetched user profile in SongListRecent:', userData);
         const fetchedId = userData?.id || userData?.userId;
         if (fetchedId) {
           setUserId(Number(fetchedId));
-          localStorage.setItem('userId', fetchedId.toString()); // Cache
-          console.log('Fetched userId in SongListRecent:', fetchedId);
-          // Nếu myInfo có favoriteSongs ngay, load luôn (optional)
-          if (userData.favoriteSongs) {
-            const favIds = userData.favoriteSongs.map(s => s.songId);
-            const map = {};
-            favIds.forEach(id => map[id] = true);
-            const result = {};
-            songs?.forEach(song => result[song.id] = !!map[song.id]);
-            setFavoriteStates(result);
-            setFavoritesLoaded(true);
-          }
-        } else {
-          console.warn('No userId in myInfo response');
+          localStorage.setItem('userId', fetchedId.toString());
         }
       } catch (err) {
         console.error('Fetch user profile error in SongListRecent:', err);
@@ -64,55 +58,38 @@ function SongListRecent({ songs, title }) {
       }
     };
     fetchUserProfile();
-  }, []); // Chạy 1 lần
+  }, []);
 
-  // Load favorites only when userId is set and songs are available
+  // Load favorites
   useEffect(() => {
     if (userId && songs?.length > 0 && !favoritesLoaded) {
       loadFavorites();
     }
-  }, [userId, songs?.length]);
-
-  // Reset favoritesLoaded nếu songs thay đổi để load lại
-  useEffect(() => {
-    if (favoritesLoaded) {
-      setFavoritesLoaded(false);
-    }
-  }, [songs]);
+  }, [userId, songs?.length, favoritesLoaded]);
 
   const loadFavorites = useCallback(async () => {
     try {
-      // Dùng USER_FAVORITES(userId) thay USER_BY_ID (trả list SongResponse)
-      const res = await api.get(API_ENDPOINTS.USER_FAVORITES(userId)); // GET /users/{userId}/favorites
-      const favSongs = res.data?.result || []; // List<SongResponse>
-      const favIds = favSongs.map(song => song.songId); // Extract IDs từ response
+      const res = await api.get(API_ENDPOINTS.USER_FAVORITES(userId));
+      const favSongs = res.data?.result || [];
+      const favIds = favSongs.map(song => song.songId || song.id);
       const map = {};
-      favIds.forEach(id => {
-        map[id] = true;
-      });
+      favIds.forEach(id => map[id] = true);
       const result = {};
-      songs.forEach(song => {
-        result[song.id] = !!map[song.id];
-      });
+      songs.forEach(song => result[song.id] = !!map[song.id]);
       setFavoriteStates(result);
       setFavoritesLoaded(true);
     } catch (err) {
       console.error('Load favorites error in SongListRecent:', err);
       const reset = {};
-      songs.forEach(song => {
-        reset[song.id] = false;
-      });
+      songs.forEach(song => reset[song.id] = false);
       setFavoriteStates(reset);
       setFavoritesLoaded(true);
     }
   }, [userId, songs]);
 
-  /* =======================
-     TOGGLE FAVORITE
-  ======================== */
+  // Toggle favorite
   const toggleFavorite = async (songId) => {
     if (!userId) {
-      // Thêm feedback cho user chưa login
       alert('Vui lòng đăng nhập để thêm yêu thích!');
       return;
     }
@@ -121,14 +98,11 @@ function SongListRecent({ songs, title }) {
     try {
       const isFavorited = favoriteStates[songId];
       if (isFavorited) {
-        await api.delete(API_ENDPOINTS.REMOVE_FAVORITE(userId, songId)); // DELETE /users/{userId}/favorites/{songId}
+        await api.delete(API_ENDPOINTS.REMOVE_FAVORITE(userId, songId));
       } else {
-        await api.post(API_ENDPOINTS.ADD_FAVORITE(userId, songId)); // POST /users/{userId}/favorites/{songId}
+        await api.post(API_ENDPOINTS.ADD_FAVORITE(userId, songId));
       }
-      setFavoriteStates(prev => ({
-        ...prev,
-        [songId]: !isFavorited
-      }));
+      setFavoriteStates(prev => ({ ...prev, [songId]: !isFavorited }));
     } catch (err) {
       console.error('Toggle favorite error in SongListRecent:', err);
       alert('Có lỗi khi cập nhật yêu thích');
@@ -137,9 +111,232 @@ function SongListRecent({ songs, title }) {
     }
   };
 
-  /* =======================
-     PLAY SONG
-  ======================== */
+  // Load playlists (copy from SongList)
+  const loadUserPlaylists = useCallback(async () => {
+    if (!userId) return;
+    
+    setLoadingPlaylists(true);
+    try {
+      const res = await api.get(API_ENDPOINTS.PLAYLISTS); // Backend filter theo token
+      const loadedPlaylists = res.data?.result || res.data || [];
+      console.log('Loaded playlists in SongListRecent:', loadedPlaylists); // Debug
+      setPlaylists(loadedPlaylists);
+    } catch (err) {
+      console.error('Load playlists error in SongListRecent:', err);
+      setPlaylists([]);
+    } finally {
+      setLoadingPlaylists(false);
+    }
+  }, [userId]);
+
+  // Auto load playlists khi có userId
+  useEffect(() => {
+    if (userId) {
+      loadUserPlaylists();
+    }
+  }, [userId, loadUserPlaylists]);
+
+  // Mở modal playlist (copy from SongList)
+  const openPlaylistModal = async (songId, e) => {
+    e.stopPropagation();
+    
+    if (!userId) {
+      alert('Vui lòng đăng nhập để thêm vào playlist!');
+      return;
+    }
+
+    setCurrentSongId(songId);
+    setShowPlaylistModal(true);
+    setShowCreateForm(false);
+    setNewPlaylistName('');
+    setModalError('');
+
+    if (playlists.length === 0 && !loadingPlaylists) {
+      await loadUserPlaylists();
+    }
+  };
+
+  // Đóng modal
+  const closePlaylistModal = () => {
+    setShowPlaylistModal(false);
+    setCurrentSongId(null);
+    setShowCreateForm(false);
+    setNewPlaylistName('');
+    setModalError('');
+  };
+
+  // Thêm vào playlist
+  const handleAddToPlaylist = async (playlistId) => {
+    if (!currentSongId) return;
+    
+    try {
+      await api.post(API_ENDPOINTS.ADD_SONG_TO_PLAYLIST(playlistId, currentSongId));
+      alert('Đã thêm bài hát vào playlist!');
+      closePlaylistModal();
+      await loadUserPlaylists();
+    } catch (err) {
+      console.error('Add to playlist error in SongListRecent:', err);
+      const msg = err.response?.data?.message || 'Không thể thêm bài hát vào playlist';
+      if (msg.includes('existed')) {
+        alert('Bài hát đã có trong playlist này!');
+      } else {
+        alert(msg);
+      }
+    }
+  };
+
+  // Tạo playlist mới
+  const handleCreatePlaylist = async () => {
+    const trimmedName = newPlaylistName.trim();
+    if (!trimmedName) {
+      setModalError('Vui lòng nhập tên playlist');
+      return;
+    }
+
+    setCreatingPlaylist(true);
+    try {
+      const createRes = await api.post(API_ENDPOINTS.PLAYLISTS, {
+        nameplaylist: trimmedName,
+        description: ''
+      });
+      
+      const newPlaylist = createRes.data?.result || createRes.data;
+      if (newPlaylist?.id || newPlaylist?.idplaylist) {
+        await loadUserPlaylists();
+        setShowCreateForm(false);
+        setNewPlaylistName('');
+        setModalError('');
+        
+        await handleAddToPlaylist(newPlaylist.id || newPlaylist.idplaylist);
+      }
+    } catch (err) {
+      console.error('Create playlist error in SongListRecent:', err);
+      setModalError(err.response?.data?.message || 'Không thể tạo playlist');
+    } finally {
+      setCreatingPlaylist(false);
+    }
+  };
+
+  // Render modal playlist (copy from SongList)
+  const renderPlaylistModal = () => {
+    if (!showPlaylistModal || !currentSongId) return null;
+
+    return (
+      <div className="modal-overlay" onClick={closePlaylistModal}>
+        <div className="playlist-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h3>Thêm vào playlist</h3>
+            <button className="modal-close" onClick={closePlaylistModal}>
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="modal-content">
+            {/* Form tạo playlist mới */}
+            <div className="create-playlist-section">
+              <button
+                className={`btn-create-playlist ${showCreateForm ? 'active' : ''}`}
+                onClick={() => {
+                  if (!showCreateForm) {
+                    setShowCreateForm(true);
+                    setModalError('');
+                  }
+                }}
+              >
+                <Plus size={20} />
+                <span>Tạo playlist mới</span>
+              </button>
+
+              {showCreateForm && (
+                <div className="create-playlist-form">
+                  <input
+                    type="text"
+                    placeholder="Nhập tên playlist"
+                    value={newPlaylistName}
+                    onChange={(e) => setNewPlaylistName(e.target.value)}
+                    autoFocus
+                    disabled={creatingPlaylist}
+                  />
+                  {modalError && <div className="error-message">{modalError}</div>}
+                  <div className="form-actions">
+                    <button
+                      className="btn-cancel"
+                      onClick={() => {
+                        setShowCreateForm(false);
+                        setNewPlaylistName('');
+                        setModalError('');
+                      }}
+                      disabled={creatingPlaylist}
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      className="btn-create"
+                      onClick={handleCreatePlaylist}
+                      disabled={!newPlaylistName.trim() || creatingPlaylist}
+                    >
+                      {creatingPlaylist ? (
+                        <Loader2 size={16} className="spinner" />
+                      ) : (
+                        'Tạo'
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Danh sách playlist */}
+            <div className="playlists-section">
+              <h4>Playlist của bạn</h4>
+              {loadingPlaylists ? (
+                <div className="loading-playlists">
+                  <Loader2 size={24} className="spinner" />
+                  <p>Đang tải playlists...</p>
+                </div>
+              ) : playlists.length > 0 ? (
+                <div className="playlists-grid">
+                  {playlists.map(playlist => (
+                    <div
+                      key={playlist.id || playlist.idplaylist}
+                      className="playlist-item"
+                      onClick={() => handleAddToPlaylist(playlist.id || playlist.idplaylist)}
+                    >
+                      <div className="playlist-avatar" style={{ backgroundColor: getPlaylistColor(playlist.id || playlist.idplaylist) }}>
+                        <ListMusic size={24} />
+                      </div>
+                      <div className="playlist-info">
+                        <h5>{playlist.name || playlist.nameplaylist || 'Playlist không tên'}</h5>
+                        <p>{(playlist.songCount || 0)} bài hát</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="no-playlists">
+                  <ListMusic size={48} />
+                  <p>Bạn chưa có playlist nào</p>
+                  <p className="subtext">Tạo playlist đầu tiên để lưu bài hát yêu thích</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Helper màu
+  const getPlaylistColor = (id) => {
+    const colors = [
+      '#1DB954', '#FF6B6B', '#4ECDC4', '#FF9F1C', 
+      '#9D4EDD', '#06D6A0', '#118AB2', '#FFD166'
+    ];
+    const index = id ? parseInt(id.toString().slice(-1)) % colors.length : 0;
+    return colors[index];
+  };
+
+  // Play song
   const handlePlaySong = (song, index) => {
     playQueue(songs, index);
   };
@@ -152,7 +349,6 @@ function SongListRecent({ songs, title }) {
     );
   }
 
-  // Show loading nếu đang fetch user
   if (isLoadingUser) {
     return (
       <div className="song-list-container">
@@ -176,7 +372,7 @@ function SongListRecent({ songs, title }) {
           <span className="col-title">Tiêu đề</span>
           <span className="col-artist">Nghệ sĩ</span>
           <span className="col-album">Album</span>
-          <span className="col-listened">Nghe lần cuối</span> {/* Fixed: Always show for Recent */}
+          <span className="col-listened">Nghe lần cuối</span> {/* Cột listenedAt */}
           <span className="col-duration">Thời lượng</span>
           <span className="col-actions"></span>
         </div>
@@ -191,6 +387,7 @@ function SongListRecent({ songs, title }) {
             duration > 0
               ? duration
               : parseDuration(song.duration);
+          
           return (
             <div
               key={songId}
@@ -213,7 +410,7 @@ function SongListRecent({ songs, title }) {
               </div>
               <span className="col-artist">{song.artist}</span>
               <span className="col-album">{song.album || 'Single'}</span>
-              <span className="col-listened">{song.listenedAt}</span> {/* Fixed: Display listenedAt */}
+              <span className="col-listened">{song.listenedAt || 'Không có dữ liệu'}</span> {/* Hiển thị listenedAt */}
               <span className="col-duration">
                 {durationLoading ? <Loader2 size={14} className="spinner" /> : formatTime(displayDuration)}
               </span>
@@ -239,7 +436,16 @@ function SongListRecent({ songs, title }) {
                     />
                   )}
                 </button>
-                <button className="btn-action">
+                {/* Nút 3 chấm - thêm onClick để mở modal playlist */}
+                <button 
+                  className="btn-action"
+                  onClick={(e) => openPlaylistModal(songId, e)}
+                  disabled={!userId}
+                  style={{
+                    opacity: !userId ? 0.5 : 1,
+                    cursor: !userId ? 'not-allowed' : 'pointer'
+                  }}
+                >
                   <MoreVertical size={18} />
                 </button>
               </div>
@@ -247,6 +453,9 @@ function SongListRecent({ songs, title }) {
           );
         })}
       </div>
+
+      {/* Modal playlist - copy từ SongList */}
+      {renderPlaylistModal()}
     </div>
   );
 }

@@ -50,7 +50,7 @@ function FavoritesPage() {
       const res = await api.get(API_ENDPOINTS.USER_FAVORITES(currentUserId)); // GET /users/{userId}/favorites
       const favSongs = res.data?.result || []; // List<SongResponse> từ backend
       
-      console.log('Favorite songs from API:', favSongs);
+      console.log('Favorite songs from API:', favSongs.length, 'items');
       
       // Map sang format cho SongCard (dùng dữ liệu từ response)
       const songs = favSongs.map(song => ({
@@ -60,7 +60,10 @@ function FavoritesPage() {
         album: song.idalbum ? `Album ${song.idalbum}` : 'Single',
         duration: formatDuration(song.duration),
         coverUrl: song.avatar || '/default-cover.png', // Real cover
-        addedDate: new Date().toLocaleDateString('vi-VN')
+        addedDate: new Date().toLocaleDateString('vi-VN'),
+        genreId: song.genreId || 1, // Fallback
+        genreName: getGenreName(song.genreId),
+        genreColor: getGenreColor(song.genreId)
       }));
 
       setFavoriteSongs(songs);
@@ -78,7 +81,10 @@ function FavoritesPage() {
             album: 'After Hours',
             duration: '3:22',
             coverUrl: '/default-cover.png',
-            addedDate: '2024-01-15'
+            addedDate: '2024-01-15',
+            genreId: 1,
+            genreName: 'Pop',
+            genreColor: '#1DB954'
           },
           { 
             id: 102, 
@@ -87,13 +93,26 @@ function FavoritesPage() {
             album: 'Endless Summer Vacation',
             duration: '3:20',
             coverUrl: '/default-cover.png',
-            addedDate: '2024-02-10'
+            addedDate: '2024-02-10',
+            genreId: 4,
+            genreName: 'R&B',
+            genreColor: '#FF9F1C'
           },
         ]);
       }
     } finally {
       setLoading(false);
     }
+  };
+
+  const getGenreName = (id) => {
+    const map = { 1: 'Pop', 2: 'Hip Hop', 3: 'Rock', 4: 'R&B', 5: 'Jazz', 6: 'Electronic', 7: 'Country', 8: 'Indie' };
+    return map[id] || 'Khác';
+  };
+
+  const getGenreColor = (id) => {
+    const colors = { 1: '#1DB954', 2: '#FF6B6B', 3: '#4ECDC4', 4: '#FF9F1C', 5: '#9D4EDD', 6: '#06D6A0', 7: '#118AB2', 8: '#FFD166' };
+    return colors[id] || '#888';
   };
 
   const formatDuration = (duration) => {
