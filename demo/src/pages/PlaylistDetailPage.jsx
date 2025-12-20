@@ -1,6 +1,8 @@
 // FILE: demo/src/pages/PlaylistDetailPage.jsx
 // Updated: Added delete playlist button in controls. Confirm dialog, call DELETE /playlists/{id}, navigate back.
 // Only for owner (backend checks). Refresh on success.
+// Additional: Fetch and map album names properly (consistent with HomePage). Added loadAlbums and albumMap.
+// Fixed: Artist mapping now handles multiple artists via artist-song relationships (loadArtistSongs, like HomePage).
 
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -18,21 +20,125 @@ function PlaylistDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deletingPlaylist, setDeletingPlaylist] = useState(false);
+  const [albumMap, setAlbumMap] = useState({});  // State cho albumMap
 
   useEffect(() => {
     if (id) fetchPlaylistData();
   }, [id]);
+
+  // Lấy tất cả artists một lần để tránh multiple requests (consistent with HomePage)
+  const loadArtists = async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.ARTISTS);
+      console.log('Artists response:', response.data);
+      
+      const artistsMap = {};
+      let artistsData = [];
+      
+      if (Array.isArray(response.data)) {
+        artistsData = response.data;
+      } else if (response.data.result && Array.isArray(response.data.result)) {
+        artistsData = response.data.result;
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        artistsData = response.data.data;
+      }
+      
+      artistsData.forEach(artist => {
+        const artistId = artist.idartist || artist.id;
+        const artistName = artist.artistname || artist.name || 'Unknown Artist';
+        artistsMap[artistId] = artistName;
+      });
+      
+      console.log('Artists map:', artistsMap);
+      return artistsMap;
+    } catch (err) {
+      console.warn('Error loading artists:', err);
+      return {};
+    }
+  };
+
+  // Lấy artist-song relationships (mới, consistent with HomePage)
+  const loadArtistSongs = async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.ARTIST_SONGS.BASE);
+      console.log('Artist songs response:', response.data);
+      
+      const artistSongMap = {};
+      let data = [];
+      
+      if (Array.isArray(response.data)) {
+        data = response.data;
+      } else if (response.data.result && Array.isArray(response.data.result)) {
+        data = response.data.result;
+      }
+      
+      data.forEach(item => {
+        const songId = item.idsong;
+        const artistId = item.idartist;
+        
+        if (songId && artistId) {
+          if (!artistSongMap[songId]) {
+            artistSongMap[songId] = [];
+          }
+          artistSongMap[songId].push(artistId);
+        }
+      });
+      
+      console.log('Artist song map:', artistSongMap);
+      return artistSongMap;
+    } catch (err) {
+      console.warn('Error loading artist songs:', err);
+      return {};
+    }
+  };
+
+  // Thêm hàm loadAlbums (tương tự HomePage)
+  const loadAlbums = async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.ALBUMS);
+      console.log('Albums response:', response.data);
+      
+      const albumMapTemp = {};
+      let albumsData = [];
+      
+      if (Array.isArray(response.data)) {
+        albumsData = response.data;
+      } else if (response.data.result && Array.isArray(response.data.result)) {
+        albumsData = response.data.result;
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        albumsData = response.data.data;
+      }
+      
+      albumsData.forEach(album => {
+        const albumId = album.idalbum || album.id;
+        const albumName = album.albumname || album.title || 'Unknown Album';
+        albumMapTemp[albumId] = albumName;
+      });
+      
+      console.log('Albums map:', albumMapTemp);
+      return albumMapTemp;
+    } catch (err) {
+      console.warn('Error loading albums:', err);
+      return {};
+    }
+  };
 
   const fetchPlaylistData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [playlistRes, songsRes, artistsRes] = await Promise.all([
+      // Load playlist songs, artists, artist-songs, albums parallel
+      const [playlistRes, songsRes, artistsMap, artistSongMap, albumMapTemp] = await Promise.all([
         api.get(API_ENDPOINTS.PLAYLIST_BY_ID(id)),
         api.get(API_ENDPOINTS.PLAYLIST_SONGS(id)),
-        api.get(API_ENDPOINTS.ARTISTS)
+        loadArtists(),
+        loadArtistSongs(),
+        loadAlbums()
       ]);
+
+      // Set albumMap vào state
+      setAlbumMap(albumMapTemp);
 
       // Playlist info (fallback result/data)
       const playlistData = playlistRes.data.result || playlistRes.data;
@@ -49,15 +155,6 @@ function PlaylistDetailPage() {
           console.warn('Creator fetch failed:', e);
         }
       }
-
-      // Artists map (consistent with HomePage/RecentPage)
-      const artistsData = artistsRes.data.result || artistsRes.data || [];
-      const artistsMap = {};
-      artistsData.forEach(a => {
-        const artistId = a.idartist || a.id;
-        const artistName = a.artistname || a.name || 'Unknown Artist';
-        artistsMap[artistId] = artistName;
-      });
 
       // Raw songs from playlist (fallback result/data/data)
       let rawSongs = songsRes.data.result || songsRes.data.data || songsRes.data || [];
@@ -78,15 +175,26 @@ function PlaylistDetailPage() {
           const genreName = getGenreName(genreId);
           const genreColor = getGenreColor(genreId);
 
-          // Artist mapping (consistent)
-          const artistId = song.idartist || song.artist_id;
-          const artistName = artistsMap[artistId] || song.artist || song.artistname || 'Unknown Artist';
+          // SỬA ARTIST MAPPING: Handle multiple artists via artistSongMap (như HomePage)
+          const artistIds = artistSongMap[songId] || [];
+          const artistNames = artistIds
+            .map(aId => artistsMap[aId] || 'Unknown Artist')
+            .filter(name => name)
+            .join(', ');
+          const artistName = artistNames || song.artist || song.artistname || 'Unknown Artist';
+
+          // LẤY TÊN ALBUM: Map từ idalbum
+          const albumId = song.idalbum || song.albumId;  // Fallback nếu tên trường khác
+          const albumName = albumMapTemp[albumId] || null;
+          
+          // FALLBACK: Nếu không có album, dùng `${title} (${artistName})`
+          const finalAlbum = albumName || `${song.title || 'Unknown'} (${artistName})`;
 
           return {
             id: song.songId || song.id || songId,
             title: song.title || 'Unknown Title',
-            artist: artistName,
-            album: song.idalbum ? `Album ${song.idalbum}` : song.album || song.albumname || 'Single',
+            artist: artistName,  // SỬA: Multiple artists nếu có
+            album: finalAlbum,
             duration: song.duration, // Keep raw for parse in SongList
             coverUrl: song.avatar || song.cover || song.image || '/default-cover.png',
             audioUrl: song.path || song.url || song.audio_url || '',
@@ -144,6 +252,13 @@ function PlaylistDetailPage() {
     }
   };
 
+  // playQueue stub (nếu chưa có, có thể implement ở global context hoặc player service)
+  const playQueue = (songList, startIndex) => {
+    console.log('Play queue:', songList, 'starting at', startIndex);
+    // TODO: Integrate with global player: e.g., dispatch play action
+    // For now, just log
+  };
+
   const getGenreName = (id) => {
     const map = { 1: 'Pop', 2: 'Hip Hop', 3: 'Rock', 4: 'R&B', 5: 'Jazz', 6: 'Electronic', 7: 'Country', 8: 'Indie' };
     return map[id] || 'Khác';
@@ -164,7 +279,14 @@ function PlaylistDetailPage() {
     if (!d) return '00:00';
     if (typeof d === 'string' && d.includes(':')) {
       const p = d.split(':');
-      return p.length === 3 ? `${p[1]}:${p[2]}` : d;
+      if (p.length === 3) {
+        // Xử lý đúng định dạng HH:MM:SS -> MM:SS
+        return `${p[1].padStart(2, '0')}:${p[2].padStart(2, '0')}`;
+      }
+      if (p.length === 2) {
+        return `${p[0].padStart(2, '0')}:${p[1].padStart(2, '0')}`;
+      }
+      return d;
     }
     if (typeof d === 'number') {
       const m = Math.floor(d / 60);

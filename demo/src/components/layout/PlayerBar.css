@@ -1,16 +1,13 @@
 /* FILE: demo/src/components/layout/PlayerBar.css */
 
 .player-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 90px;
+  height: var(--player-height); /* 90px */
   background: linear-gradient(to top, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.9));
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   z-index: 1000;
   padding: 0 20px;
+  flex-shrink: 0; /* Quan trọng: không co lại */
 }
 
 .player-bar.playing {
@@ -117,17 +114,13 @@
     height: 80px;
     padding: 0 10px;
   }
-  
+
   .player-bar-content {
     gap: 10px;
   }
-  
+
   .song-title,
   .song-artist {
     max-width: 120px;
-  }
-  
-  .volume-slider-container.visible {
-    width: 60px;
   }
 }

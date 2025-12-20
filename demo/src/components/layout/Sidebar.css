@@ -49,7 +49,7 @@
   font-weight: 600;
   text-transform: uppercase;
   color: var(--text-secondary);
-  margin-bottom: 0.75rem;
+  margin-bottom: 1px;
   letter-spacing: 0.5px;
 }
 

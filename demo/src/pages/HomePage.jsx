@@ -134,8 +134,9 @@ function HomePage() {
       
       console.log('Songs data:', songsData);
       
-      // Set albumMap vào state (để dùng nếu cần sau)
+      // Set albumMap và artistsMap vào state (để dùng nếu cần sau)
       setAlbumMap(albumMapTemp);
+      setArtists(artistsMap);  // SỬA: Thêm dòng này để cập nhật state artists
       
       // Map songs với artist names VÀ album names
       const processedSongs = songsData.map(song => {
@@ -172,8 +173,11 @@ function HomePage() {
         };
       });
       
-      console.log('Processed songs:', processedSongs);
-      setSongs(processedSongs);
+      // Sắp xếp songs theo views giảm dần để trending có ý nghĩa hơn
+      const sortedSongs = processedSongs.sort((a, b) => b.views - a.views);
+      
+      console.log('Processed and sorted songs:', sortedSongs);
+      setSongs(sortedSongs);
       setError(null);
       
     } catch (err) {
@@ -191,7 +195,11 @@ function HomePage() {
       if (duration.includes(':')) {
         const parts = duration.split(':');
         if (parts.length === 3) {
-          return `${parts[0]}:${parts[1]}`;
+          // SỬA: Xử lý đúng định dạng HH:MM:SS -> MM:SS
+          return `${parts[1].padStart(2, '0')}:${parts[2].padStart(2, '0')}`;
+        }
+        if (parts.length === 2) {
+          return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
         }
         return duration;
       }
@@ -234,14 +242,14 @@ function HomePage() {
   if (error) {
     return (
       <div className="home-page error">
-        <div className="error-content">
-          <p>❌ {error}</p>
-          <button className="btn-retry" onClick={loadData}>
-            Thử lại
-          </button>
-        </div>
+      <div className="error-content">
+        <p>❌ {error}</p>
+        <button className="btn-retry" onClick={loadData}>
+          Thử lại
+        </button>
       </div>
-    );
+    </div>
+  );
   }
 
   return (
@@ -265,7 +273,7 @@ function HomePage() {
       <section className="trending-section">
         <h2>🔥 Trending Now</h2>
         <div className="song-grid">
-          {songs.slice(0, 8).map(song => (
+          {songs.slice(0, 12).map(song => (
             <SongCard key={song.id} song={song} />
           ))}
         </div>

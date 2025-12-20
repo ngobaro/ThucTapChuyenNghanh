@@ -11,10 +11,78 @@ function FavoritesPage() {
   const [favoriteSongs, setFavoriteSongs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState(null); // Handle userId fetch
+  const [artistsMap, setArtistsMap] = useState({}); // Thêm state cho artistsMap
+  const [artistSongMap, setArtistSongMap] = useState({}); // Thêm state cho artistSongMap (multiple artists)
 
   useEffect(() => {
     fetchUserAndFavorites();
   }, []);
+
+  // Lấy tất cả artists một lần để tránh multiple requests (consistent with HomePage)
+  const loadArtists = async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.ARTISTS);
+      console.log('Artists response:', response.data);
+      
+      const artistsMapTemp = {};
+      let artistsData = [];
+      
+      if (Array.isArray(response.data)) {
+        artistsData = response.data;
+      } else if (response.data.result && Array.isArray(response.data.result)) {
+        artistsData = response.data.result;
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        artistsData = response.data.data;
+      }
+      
+      artistsData.forEach(artist => {
+        const artistId = artist.idartist || artist.id;
+        const artistName = artist.artistname || artist.name || 'Unknown Artist';
+        artistsMapTemp[artistId] = artistName;
+      });
+      
+      console.log('Artists map:', artistsMapTemp);
+      return artistsMapTemp;
+    } catch (err) {
+      console.warn('Error loading artists:', err);
+      return {};
+    }
+  };
+
+  // Lấy artist-song relationships (cho multiple artists)
+  const loadArtistSongs = async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.ARTIST_SONGS.BASE);
+      console.log('Artist songs response:', response.data);
+      
+      const artistSongMapTemp = {};
+      let data = [];
+      
+      if (Array.isArray(response.data)) {
+        data = response.data;
+      } else if (response.data.result && Array.isArray(response.data.result)) {
+        data = response.data.result;
+      }
+      
+      data.forEach(item => {
+        const songId = item.idsong;
+        const artistId = item.idartist;
+        
+        if (songId && artistId) {
+          if (!artistSongMapTemp[songId]) {
+            artistSongMapTemp[songId] = [];
+          }
+          artistSongMapTemp[songId].push(artistId);
+        }
+      });
+      
+      console.log('Artist song map:', artistSongMapTemp);
+      return artistSongMapTemp;
+    } catch (err) {
+      console.warn('Error loading artist songs:', err);
+      return {};
+    }
+  };
 
   const fetchUserAndFavorites = async () => {
     try {
@@ -46,25 +114,45 @@ function FavoritesPage() {
         setUserId(Number(currentUserId));
       }
 
+      // Load artists, artist-songs parallel trước khi fetch favorites
+      const [artistsMapTemp, artistSongMapTemp] = await Promise.all([
+        loadArtists(),
+        loadArtistSongs()
+      ]);
+      setArtistsMap(artistsMapTemp);
+      setArtistSongMap(artistSongMapTemp);
+
       // Dùng USER_FAVORITES(userId) để lấy trực tiếp list SongResponse
       const res = await api.get(API_ENDPOINTS.USER_FAVORITES(currentUserId)); // GET /users/{userId}/favorites
       const favSongs = res.data?.result || []; // List<SongResponse> từ backend
       
       console.log('Favorite songs from API:', favSongs.length, 'items');
       
-      // Map sang format cho SongCard (dùng dữ liệu từ response)
-      const songs = favSongs.map(song => ({
-        id: song.songId || song.id,
-        title: song.title || 'Unknown Title',
-        artist: song.artist || 'Unknown Artist', // Giả sử backend trả artist
-        album: song.idalbum ? `Album ${song.idalbum}` : 'Single',
-        duration: formatDuration(song.duration),
-        coverUrl: song.avatar || '/default-cover.png', // Real cover
-        addedDate: new Date().toLocaleDateString('vi-VN'),
-        genreId: song.genreId || 1, // Fallback
-        genreName: getGenreName(song.genreId),
-        genreColor: getGenreColor(song.genreId)
-      }));
+      // Map sang format cho SongCard (với artist mapping đúng)
+      const songs = favSongs.map(song => {
+        const songId = song.songId || song.id;
+        
+        // SỬA ARTIST MAPPING: Handle multiple artists via artistSongMap
+        const artistIds = artistSongMapTemp[songId] || [];
+        const artistNames = artistIds
+          .map(aId => artistsMapTemp[aId] || 'Unknown Artist')
+          .filter(name => name)
+          .join(', ');
+        const artistName = artistNames || song.artist || song.artistname || 'Unknown Artist';
+
+        return {
+          id: songId,
+          title: song.title || 'Unknown Title',
+          artist: artistName,  // SỬA: Multiple artists nếu có, hoặc fallback
+          album: song.idalbum ? `Album ${song.idalbum}` : 'Single', // Có thể cải thiện sau với albumMap
+          duration: formatDuration(song.duration),
+          coverUrl: song.avatar || '/default-cover.png', // Real cover
+          addedDate: new Date().toLocaleDateString('vi-VN'),
+          genreId: song.genreId || 1, // Fallback
+          genreName: getGenreName(song.genreId),
+          genreColor: getGenreColor(song.genreId)
+        };
+      });
 
       setFavoriteSongs(songs);
       
@@ -122,7 +210,11 @@ function FavoritesPage() {
       if (duration.includes(':')) {
         const parts = duration.split(':');
         if (parts.length === 3) {
-          return `${parts[0]}:${parts[1]}`;
+          // SỬA: Xử lý đúng định dạng HH:MM:SS -> MM:SS
+          return `${parts[1].padStart(2, '0')}:${parts[2].padStart(2, '0')}`;
+        }
+        if (parts.length === 2) {
+          return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
         }
         return duration;
       }

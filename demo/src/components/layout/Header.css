@@ -1,45 +1,30 @@
-/* FILE: demo/src/components/layout/Header.css */
-
+/* ================= HEADER ================= */
 .header {
   height: 70px;
-  background: linear-gradient(135deg, #121212 0%, #1a1a2e 100%);
+  background: linear-gradient(135deg, #121212, #1a1a2e);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 30px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   position: sticky;
   top: 0;
   z-index: 1000;
+  border-bottom: 1px solid rgba(255,255,255,.1);
   backdrop-filter: blur(10px);
 }
 
-/* Logo Section */
+/* ================= LOGO ================= */
 .header-left .logo {
-  text-decoration: none;
   color: #fff;
+  font-weight: 800;
+  font-size: 26px;
+  text-decoration: none;
   display: flex;
   align-items: center;
-  gap: 10px;
-  transition: transform 0.3s ease;
+  gap: 8px;
 }
 
-.header-left .logo:hover {
-  transform: scale(1.05);
-}
-
-.header-left h1 {
-  font-size: 28px;
-  font-weight: 800;
-  background: linear-gradient(90deg, #1DB954, #1ed760);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.5px;
-}
-
-/* Search Section */
+/* ================= SEARCH ================= */
 .header-center {
   flex: 1;
   max-width: 700px;
@@ -50,500 +35,168 @@
 .search-container {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 30px;
-  padding: 12px 20px;
   gap: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.search-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  transition: left 0.5s ease;
-}
-
-.search-container:hover::before {
-  left: 100%;
-}
-
-.search-container:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  padding: 12px 20px;
+  border-radius: 30px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15);
 }
 
 .search-container svg {
   color: #1DB954;
-  stroke-width: 2.5;
 }
 
-/* Search Input Field */
-.search-input {
+.search-container input {
   flex: 1;
   background: none;
   border: none;
   color: #fff;
-  font-size: 16px;
+  font-size: 15px;
   outline: none;
-  font-weight: 500;
-  min-width: 0;
-  padding: 0;
-  font-family: inherit;
 }
 
-.search-input::placeholder {
-  /* color: rgba(255, 255, 255, 0.5);
-  font-weight: 400; */
-}
-
-/* Clear Search Button */
-.clear-search-btn {
+.search-container button {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.5);
-  padding: 4px;
-  border-radius: 50%;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  flex-shrink: 0;
+  color: rgba(255,255,255,.6);
 }
 
-.clear-search-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+.search-container button:hover {
   color: #fff;
 }
 
-/* Search Spinner */
-.search-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #1DB954;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  flex-shrink: 0;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Right Section */
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-/* Auth Buttons */
-.btn-auth {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  text-decoration: none;
-  border-radius: 25px;
-  font-weight: 600;
-  font-size: 14px;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  cursor: pointer;
-}
-
-.btn-auth:hover {
-  background: rgba(29, 185, 84, 0.1);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(29, 185, 84, 0.3);
-  border-color: #1DB954;
-}
-
-.btn-auth svg {
-  stroke-width: 2.5;
-}
-
-.btn-auth-primary {
-  padding: 12px 28px;
-  background: linear-gradient(90deg, #1DB954, #1ed760);
-  color: #fff;
-  text-decoration: none;
-  border-radius: 25px;
-  font-weight: 700;
-  font-size: 14px;
-  transition: all 0.3s ease;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(29, 185, 84, 0.4);
-  letter-spacing: 0.5px;
-}
-
-.btn-auth-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(29, 185, 84, 0.5);
-  background: linear-gradient(90deg, #1ed760, #1DB954);
-}
-
-/* User Menu */
-.user-menu {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
-  background: rgba(29, 185, 84, 0.1);
-  border-radius: 25px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(29, 185, 84, 0.3);
-  color: #1DB954;
-}
-
-.user-menu:hover {
-  background: rgba(29, 185, 84, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(29, 185, 84, 0.2);
-}
-
-.user-menu svg {
-  color: #1DB954;
-}
-
-.user-menu span {
-  font-weight: 600;
-  font-size: 14px;
-}
-
-/* Dropdown Menu */
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background: rgba(25, 25, 25, 0.95);
-  backdrop-filter: blur(20px);
-  border-radius: 12px;
-  padding: 10px 0;
-  min-width: 200px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  margin-top: 10px;
-  z-index: 1001;
-}
-
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  color: #fff;
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 14px;
-}
-
-.dropdown-item:hover {
-  background: rgba(29, 185, 84, 0.1);
-  color: #1DB954;
-}
-
-.dropdown-item svg {
-  width: 18px;
-  height: 18px;
-}
-
-/* Logout Button */
-.btn-logout {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: rgba(29, 185, 84, 0.1);
-  color: #1DB954;
-  border: 1px solid rgba(29, 185, 84, 0.3);
-  border-radius: 25px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-logout:hover {
-  background: rgba(29, 185, 84, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(29, 185, 84, 0.2);
-}
-
-/* Search Results Dropdown */
+/* ================= SEARCH RESULT ================= */
 .search-results-dropdown {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
-  background: rgba(25, 25, 25, 0.95);
+  margin-top: 8px;
+  background: rgba(25,25,25,.95);
   backdrop-filter: blur(20px);
   border-radius: 12px;
-  margin-top: 8px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 40px rgba(0,0,0,.5);
   max-height: 400px;
   overflow-y: auto;
-  z-index: 1000;
-}
-
-.search-results-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.search-results-header h4 {
-  margin: 0;
-  font-size: 14px;
-  color: #fff;
-  font-weight: 600;
-}
-
-.result-count {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  font-weight: 500;
-}
-
-.search-results-list {
-  padding: 8px 0;
+  z-index: 1001;
 }
 
 .search-result-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 20px;
+  padding: 12px 16px;
   cursor: pointer;
-  transition: all 0.2s;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.search-result-item:last-child {
-  border-bottom: none;
+  transition: background .2s;
 }
 
 .search-result-item:hover {
-  background: rgba(29, 185, 84, 0.1);
+  background: rgba(29,185,84,.15);
 }
 
-.result-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  background: rgba(29, 185, 84, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.search-result-item img {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.search-result-item svg {
   color: #1DB954;
-  flex-shrink: 0;
 }
 
-.result-details {
+.search-result-item div {
   flex: 1;
   min-width: 0;
 }
 
-.result-title {
+.search-result-item div > div {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: #fff;
-  margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.result-subtitle {
+.search-result-item small {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255,255,255,.6);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.play-song-btn {
-  background: none;
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+/* ================= RIGHT ================= */
+.header-right {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 20px;
+}
+
+.header-right a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ================= USER MENU ================= */
+.header-right > div {
+  position: relative;
   cursor: pointer;
-  opacity: 0;
-  transition: all 0.2s;
   color: #1DB954;
-  margin-left: 8px;
-  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.search-result-item:hover .play-song-btn {
-  opacity: 1;
-  background: rgba(29, 185, 84, 0.1);
+/* ================= DROPDOWN ================= */
+.dropdown-menu {
+  position: absolute;
+  top: 120%;
+  right: 0;
+  background: rgba(25,25,25,.95);
+  border-radius: 12px;
+  min-width: 200px;
+  padding: 8px 0;
+  box-shadow: 0 10px 40px rgba(0,0,0,.6);
+  z-index: 1002;
 }
 
-.play-song-btn:hover {
-  background: rgba(29, 185, 84, 0.2);
-  transform: scale(1.1);
-}
-
-.play-icon {
-  font-size: 12px;
-  margin-left: 1px;
-}
-
-.search-results-footer {
+.dropdown-menu div {
   padding: 12px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  text-align: center;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background .2s;
 }
 
-.view-all-btn {
-  background: rgba(29, 185, 84, 0.1);
+.dropdown-menu div:hover {
+  background: rgba(29,185,84,.15);
   color: #1DB954;
-  border: 1px solid rgba(29, 185, 84, 0.3);
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
 }
 
-.view-all-btn:hover {
-  background: rgba(29, 185, 84, 0.2);
-}
-
-/* No Results */
-.no-results {
-  padding: 30px 20px;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.no-results svg {
-  margin-bottom: 10px;
-  opacity: 0.3;
-}
-
-.no-results p {
-  margin: 0;
-  font-size: 14px;
-}
-
-/* Header Animation */
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.header {
-  animation: fadeInDown 0.5s ease-out;
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-  .header {
-    padding: 0 20px;
-    height: 60px;
-  }
-  
-  .header-left h1 {
-    font-size: 24px;
-  }
-  
-  .header-center {
-    margin: 0 15px;
-  }
-  
-  .search-container {
-    padding: 10px 16px;
-  }
-}
-
+/* ================= MOBILE ================= */
 @media (max-width: 768px) {
   .header {
     padding: 0 15px;
   }
-  
+
   .header-center {
-    display: block !important;
-    position: static;
+    margin: 0 10px;
   }
-  
+
   .search-results-dropdown {
     position: fixed;
     top: 70px;
     left: 0;
     right: 0;
-    margin: 0;
     border-radius: 0;
-    border-left: none;
-    border-right: none;
     max-height: 60vh;
-  }
-  
-  .play-song-btn {
-    opacity: 1;
-  }
-  
-  .btn-auth,
-  .btn-auth-primary {
-    padding: 10px 16px;
-    font-size: 13px;
-  }
-  
-  .btn-auth span,
-  .user-menu span {
-    display: none;
-  }
-  
-  .user-menu {
-    padding: 8px;
-  }
-  
-  .btn-auth svg,
-  .btn-logout svg {
-    margin-right: 0;
-  }
-}
-
-@media (max-width: 480px) {
-  .header-left h1 {
-    font-size: 20px;
-  }
-  
-  .header-right {
-    gap: 10px;
-  }
-  
-  .btn-auth,
-  .btn-auth-primary {
-    padding: 8px 12px;
   }
 }

@@ -1,4 +1,7 @@
 // FILE: demo/src/routes/AppRoutes.jsx
+// Fixed: Import OftenListenedPage correctly, use <OftenListenedPage /> in route.
+// Path standardized to "often-listened" for SEO/readability (hyphenated).
+// Removed unused { Play } import. Added comment for clarity.
 
 import { Routes, Route } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
@@ -6,21 +9,21 @@ import MainLayout from '../components/layout/MainLayout';
 // Các pages
 import HomePage from '../pages/HomePage';
 import LibraryPage from '../pages/LibraryPage';
-import RankPage from '../pages/RankPage'; // Import RankPage mới
+import RankPage from '../pages/RankPage';
 import FavoritesPage from '../pages/FavoritesPage';
 import RecentPage from '../pages/RecentPage';
+import OftenListenedPage from '../pages/OftenListenedPage'; // Import correct component name
 import AlbumsPage from '../pages/AlbumsPage';
 import GenresPage from '../pages/GenresPage';
 import GenrePage from '../pages/GenrePage';
 import ProfilePage from '../pages/ProfilePage';
-import DashboardPage from '../pages/admin/DashboardPage'; // Import DashboardPage cho admin
+import DashboardPage from '../pages/admin/DashboardPage';
 
 // Auth pages
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import AlbumDetailPage from '../pages/AlbumDetailPage';
-import { Play } from 'lucide-react';
 import PlaylistDetailPage from '../pages/PlaylistDetailPage';
 
 function AppRoutes() {
@@ -29,9 +32,10 @@ function AppRoutes() {
       <Route element={<MainLayout />}>
         <Route index element={<HomePage />} />
         <Route path="library" element={<LibraryPage />} />
-        <Route path="rank" element={<RankPage />} /> {/* Sử dụng RankPage */}
+        <Route path="rank" element={<RankPage />} />
         <Route path="favorites" element={<FavoritesPage />} />
         <Route path="recent" element={<RecentPage />} />
+        <Route path="often-listened" element={<OftenListenedPage />} /> {/* Fixed: Correct import/use, hyphenated path */}
         <Route path="albums" element={<AlbumsPage />} />
         <Route path="album/:id" element={<AlbumDetailPage />} />
         <Route path="playlists" element={<LibraryPage />} />
@@ -39,7 +43,7 @@ function AppRoutes() {
         <Route path="genres" element={<GenresPage />} />
         <Route path="genre/:id" element={<GenrePage />} />
         <Route path="profile" element={<ProfilePage />} />
-        <Route path="admin/dashboard" element={<DashboardPage />} /> {/* Route cho Admin Dashboard */}
+        <Route path="admin/dashboard" element={<DashboardPage />} />
       </Route>
 
       <Route path="login" element={<LoginPage />} />

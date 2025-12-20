@@ -36,8 +36,10 @@ function SongCard({ song, isPlaying = false }) {
       </div>
 
       <div className="song-info">
-        <h3 className="song-title">{song.title}</h3>
-        <p className="song-artist">{song.artist || 'Nghệ sĩ không xác định'}</p>
+        <h3 className="song-title">{song.title || 'Tiêu đề không xác định'}</h3>
+        <p className="song-artist">
+          {song.artist || 'Nghệ sĩ không xác định'}
+        </p>
       </div>
     </div>
   );

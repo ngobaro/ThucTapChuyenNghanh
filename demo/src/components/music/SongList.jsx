@@ -1,8 +1,9 @@
 // FILE: demo/src/components/music/SongList.jsx
-// Updated: Added delete song functionality for playlists (trash icon in actions). Only for logged-in users/owners.
-// Backend call DELETE /playlists/{playlistId}/songs/{songId}. Confirm dialog. Refresh songs after delete.
+// Fixed: In loadUserPlaylists, after fetching playlists, parallel fetch songCount for each playlist (similar to LibraryPage).
+// Assume API_ENDPOINTS.PLAYLIST_SONGS(id) returns songs array, length = songCount. Set playlist.songCount.
+// If backend already returns songCount, this enhances/overrides. Handles error per playlist.
 
-import { Play, Heart, MoreVertical, Loader2, Trash2 } from 'lucide-react';
+import { Play, Heart, MoreVertical, Loader2, Trash2, X, ListMusic, Plus } from 'lucide-react';
 import { usePlayer } from '../../context/PlayerContext';
 import { formatTime } from '../../utils/formatTime';
 import { useAudioDuration } from '../../hooks/useAudioDuration';
@@ -11,7 +12,7 @@ import api from '../../services/api';
 import { API_ENDPOINTS } from '../../utils/constants';
 import './SongList.css';
 
-function SongList({ songs, title, showGenre = false, playlistId = null }) { // Add playlistId prop for delete
+function SongList({ songs, title, showGenre = false, playlistId = null }) {
   const { playQueue, currentSong } = usePlayer();
   const [favoriteStates, setFavoriteStates] = useState({});
   const [favoriteLoading, setFavoriteLoading] = useState({});
@@ -139,14 +140,30 @@ function SongList({ songs, title, showGenre = false, playlistId = null }) { // A
     }
   };
 
-  // Load playlists for add modal
+  // Load playlists for add modal with songCount
   const loadUserPlaylists = useCallback(async () => {
     if (!userId) return;
     setLoadingPlaylists(true);
     try {
       const res = await api.get(API_ENDPOINTS.PLAYLISTS);
-      const loadedPlaylists = res.data?.result || res.data || [];
-      setPlaylists(loadedPlaylists);
+      let loadedPlaylists = res.data?.result || res.data || [];
+      console.log('Loaded playlists:', loadedPlaylists); // Debug: Check if songCount in response
+
+      // Fetch songCount for each playlist (parallel)
+      const playlistsWithCount = await Promise.all(
+        loadedPlaylists.map(async (p) => {
+          try {
+            const songsRes = await api.get(API_ENDPOINTS.PLAYLIST_SONGS(p.idplaylist || p.id));
+            const songCount = (songsRes.data.result || songsRes.data || []).length;
+            return { ...p, songCount }; // Add/override songCount
+          } catch (err) {
+            console.warn(`Failed to fetch song count for playlist ${p.id}:`, err);
+            return { ...p, songCount: 0 };
+          }
+        })
+      );
+
+      setPlaylists(playlistsWithCount);
     } catch (err) {
       console.error('Load playlists error in SongList:', err);
       setPlaylists([]);
@@ -167,6 +184,7 @@ function SongList({ songs, title, showGenre = false, playlistId = null }) { // A
       alert('Vui lòng đăng nhập để thêm vào playlist!');
       return;
     }
+    console.log('Opening modal for songId:', songId); // Debug setCurrentSongId
     setCurrentSongId(songId);
     setShowPlaylistModal(true);
     setShowCreateForm(false);
@@ -186,20 +204,42 @@ function SongList({ songs, title, showGenre = false, playlistId = null }) { // A
   };
 
   const handleAddToPlaylist = async (playlistId) => {
-    if (!currentSongId) return;
+    if (!currentSongId || currentSongId === 'undefined' || !playlistId) {
+      console.error('Invalid songId or playlistId:', { currentSongId, playlistId });
+      alert('Lỗi: ID bài hát hoặc playlist không hợp lệ. Thử lại.');
+      closePlaylistModal();
+      return;
+    }
+    console.log(`Adding song ${currentSongId} to playlist ${playlistId}`); // Debug
     try {
+      // Matches backend: POST /playlists/{playlistId}/songs/{songId} (path-based, no body)
       await api.post(API_ENDPOINTS.ADD_SONG_TO_PLAYLIST(playlistId, currentSongId));
       alert('Đã thêm bài hát vào playlist!');
       closePlaylistModal();
       await loadUserPlaylists();
-    } catch (err) {
-      console.error('Add to playlist error in SongList:', err);
-      const msg = err.response?.data?.message || 'Không thể thêm bài hát vào playlist';
-      if (msg.includes('Already') || msg.includes('existed') || msg.includes('EXISTED') || msg.includes('Song Already')) {
-        alert('Bài hát đã có trong playlist này!');
-      } else {
-        alert(msg);
+      // Optional: Refresh current page if in playlist detail
+      if (playlistId) {
+        window.location.reload(); // Refresh to show updated songs
       }
+    } catch (err) {
+      console.error('Add to playlist error in SongList:', err); // Debug
+      console.error('Full error response:', err.response?.data); // Enhanced log for 400/403 details
+      let msg = err.response?.data?.message || 'Không thể thêm bài hát vào playlist';
+      const status = err.response?.status;
+      if (status === 400) {
+        if (msg.includes('not found') || msg.includes('không tồn tại')) {
+          msg = 'Playlist hoặc bài hát không tồn tại.';
+        } else if (msg.includes('already exists') || msg.includes('đã có')) {
+          msg = 'Bài hát đã có trong playlist này!';
+        } else if (msg.includes('authorized') || msg.includes('quyền')) {
+          msg = 'Bạn không có quyền thêm vào playlist này.';
+        }
+      } else if (status === 403) {
+        msg = 'Không có quyền truy cập playlist này.';
+      } else if (status === 404) {
+        msg = 'Playlist không tồn tại.';
+      }
+      alert(msg);
     }
   };
 
@@ -216,12 +256,20 @@ function SongList({ songs, title, showGenre = false, playlistId = null }) { // A
         description: ''
       });
       const newPlaylist = createRes.data?.result || createRes.data;
+      console.log('Created playlist:', newPlaylist); // Debug
       if (newPlaylist?.id || newPlaylist?.idplaylist) {
         await loadUserPlaylists();
         setShowCreateForm(false);
         setNewPlaylistName('');
         setModalError('');
-        await handleAddToPlaylist(newPlaylist.id || newPlaylist.idplaylist);
+        // Ensure currentSongId still set before adding
+        const tempSongId = currentSongId;
+        if (tempSongId) {
+          await handleAddToPlaylist(newPlaylist.id || newPlaylist.idplaylist);
+        } else {
+          console.error('currentSongId lost after create:', currentSongId);
+          alert('Lỗi khi thêm vào playlist mới. Thử lại.');
+        }
       }
     } catch (err) {
       console.error('Create playlist error in SongList:', err);
@@ -501,4 +549,4 @@ const parseDuration = (duration) => {
   return Number(duration) || 0;
 };
 
-export default SongList;
+export default SongList;  

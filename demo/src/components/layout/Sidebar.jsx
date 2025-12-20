@@ -92,18 +92,8 @@ function Sidebar() {
           })}
         </div>
 
-        {/* Nút đi đến trang Thể loại (Genres) */}
-        <div className="nav-section">
-          <NavLink
-            to="/genres"
-            className={({ isActive }) =>
-              `sidebar-item ${isActive ? 'active' : ''}`
-            }
-          >
-            <Grid size={22} />
-            <span>Thể loại</span>
-          </NavLink>
-        </div>
+       
+        
       </nav>
     </aside>
   );
