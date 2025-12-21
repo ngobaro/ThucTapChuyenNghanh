@@ -1,3 +1,4 @@
+// FILE: demo/src/components/layout/Header.jsx
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Search, User, LogIn, LogOut,
@@ -38,7 +39,7 @@ function Header() {
       try {
         const user = JSON.parse(userData);
         setIsLoggedIn(true);
-        setUserName(user.username);
+        setUserName(user.username || user.name || 'User');
         setUserRole(user.role?.toUpperCase() || 'USER');
       } catch {
         handleLogout();
@@ -76,7 +77,7 @@ function Header() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  /* ===================== LOAD ARTISTS ===================== */
+  /* ===================== LOAD ARTISTS & ARTIST-SONGS ===================== */
   const loadArtistsMap = async () => {
     try {
       const res = await api.get(API_ENDPOINTS.ARTISTS);
@@ -200,7 +201,7 @@ function Header() {
   return (
     <header className="header">
       <div className="header-left">
-        <Link to="/" className="logo">🎵 spoti-five</Link>
+        <Link to="/" className="logo">spoti-five</Link>
       </div>
 
       <div className="header-center" ref={searchRef}>
@@ -213,7 +214,7 @@ function Header() {
           />
         </div>
 
-        {showSearchResults && (
+        {showSearchResults && searchResults.length > 0 && (
           <div className="search-results-dropdown">
             {searchResults.map((item, i) => (
               <div
@@ -222,13 +223,13 @@ function Header() {
                 onClick={() => handleItemClick(item)}
               >
                 {item.type === 'song' ? (
-                  <img src={item.coverUrl} alt="" />
+                  <img src={item.coverUrl} alt={item.title} onError={e => e.target.src = '/default-cover.png'} />
                 ) : (
                   <Disc size={18} />
                 )}
                 <div>
-                  <div>{item.title}</div>
-                  <small>{item.artist}</small>
+                  <div className="result-title">{item.title}</div>
+                  <small className="result-artist">{item.artist}</small>
                 </div>
               </div>
             ))}
@@ -238,25 +239,50 @@ function Header() {
 
       <div className="header-right">
         {isLoggedIn ? (
-          <div ref={dropdownRef} onClick={() => setShowDropdown(!showDropdown)}>
-            <User size={20} /> {userName}
+          <div className="user-menu" ref={dropdownRef}>
+            <div className="user-info" onClick={() => setShowDropdown(!showDropdown)}>
+              <User size={20} />
+              <span>{userName}</span>
+            </div>
+
             {showDropdown && (
               <div className="dropdown-menu">
+                {/* Mục Hồ sơ mới */}
+                <div className="dropdown-item" onClick={() => {
+                  setShowDropdown(false);
+                  navigate('/profile'); // Thay bằng route profile của bạn nếu khác
+                }}>
+                  <UserIcon size={16} />
+                  Hồ sơ
+                </div>
+
+                {/* Dashboard cho admin */}
                 {userRole === 'ADMIN' && (
-                  <div onClick={() => navigate('/admin/dashboard')}>
-                    <LayoutDashboard size={16} /> Dashboard
+                  <div className="dropdown-item" onClick={() => {
+                    setShowDropdown(false);
+                    navigate('/admin/dashboard');
+                  }}>
+                    <LayoutDashboard size={16} />
+                    Dashboard
                   </div>
                 )}
-                <div onClick={handleLogout}>
-                  <LogOut size={16} /> Đăng xuất
+
+                {/* Đăng xuất */}
+                <div className="dropdown-item" onClick={handleLogout}>
+                  <LogOut size={16} />
+                  Đăng xuất
                 </div>
               </div>
             )}
           </div>
         ) : (
           <>
-            <Link to="/login"><LogIn size={18} /> Đăng nhập</Link>
-            <Link to="/register">Đăng ký</Link>
+            <Link to="/login" className="auth-link">
+              <LogIn size={18} /> Đăng nhập
+            </Link>
+            <Link to="/register" className="auth-link register">
+              Đăng ký
+            </Link>
           </>
         )}
       </div>
