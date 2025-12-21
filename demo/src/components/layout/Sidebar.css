@@ -44,15 +44,6 @@
   padding: 0 1.5rem;
 }
 
-.section-title {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  margin-bottom: 1px;
-  letter-spacing: 0.5px;
-}
-
 .sidebar-item {
   display: flex;
   align-items: center;
@@ -71,14 +62,14 @@
 }
 
 .sidebar-item.active {
-  background: var(--primary-light);
   color: var(--primary-color);
   font-weight: 500;
 }
 
 .sidebar-item:focus {
   outline: 2px solid var(--primary-color);
-  outline-offset: 2px; /* New: Accessibility focus ring */
+  outline-offset: 2px;
+  /* New: Accessibility focus ring */
 }
 
 .sidebar-item svg {
@@ -118,7 +109,8 @@
 }
 
 .genre-item:focus {
-  outline: 2px solid var(--primary-color); /* New: Accessibility */
+  outline: 2px solid var(--primary-color);
+  /* New: Accessibility */
   outline-offset: 2px;
 }
 
@@ -136,7 +128,8 @@
 
 .genre-count {
   font-size: 0.75rem;
-  color: var(--text-primary); /* Updated: Better contrast on --bg-secondary */
+  color: var(--text-primary);
+  /* Updated: Better contrast on --bg-secondary */
   background: var(--bg-secondary);
   padding: 0.125rem 0.5rem;
   border-radius: 10px;
@@ -167,7 +160,8 @@
 
 /* New: Favorites section styling (if you add a "Favorites" nav item) */
 .favorites-item {
-  position: relative; /* For potential badge */
+  position: relative;
+  /* For potential badge */
 }
 
 .favorites-badge {
@@ -190,22 +184,21 @@
   .sidebar {
     width: 72px;
   }
-  
+
   .brand-text,
-  .section-title,
   .sidebar-item span,
   .genre-name,
   .genre-count {
     display: none;
   }
-  
+
   .brand-logo,
   .sidebar-item,
   .genre-item {
     justify-content: center;
     padding: 1rem;
   }
-  
+
   .nav-section {
     padding: 0 0.5rem;
   }

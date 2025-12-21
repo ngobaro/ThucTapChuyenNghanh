@@ -25,10 +25,10 @@ function GenrePage() {
     try {
       const response = await api.get(API_ENDPOINTS.ARTISTS);
       console.log('Artists response:', response.data);
-      
+
       const artistsMap = {};
       let artistsData = [];
-      
+
       if (Array.isArray(response.data)) {
         artistsData = response.data;
       } else if (response.data.result && Array.isArray(response.data.result)) {
@@ -36,13 +36,13 @@ function GenrePage() {
       } else if (response.data.data && Array.isArray(response.data.data)) {
         artistsData = response.data.data;
       }
-      
+
       artistsData.forEach(artist => {
         const artistId = artist.idartist || artist.id;
         const artistName = artist.artistname || artist.name || 'Unknown Artist';
         artistsMap[artistId] = artistName;
       });
-      
+
       console.log('Artists map:', artistsMap);
       return artistsMap;
     } catch (err) {
@@ -56,20 +56,20 @@ function GenrePage() {
     try {
       const response = await api.get(API_ENDPOINTS.ARTIST_SONGS.BASE);
       console.log('Artist songs response:', response.data);
-      
+
       const artistSongMap = {};
       let data = [];
-      
+
       if (Array.isArray(response.data)) {
         data = response.data;
       } else if (response.data.result && Array.isArray(response.data.result)) {
         data = response.data.result;
       }
-      
+
       data.forEach(item => {
         const songId = item.idsong;
         const artistId = item.idartist;
-        
+
         if (songId && artistId) {
           if (!artistSongMap[songId]) {
             artistSongMap[songId] = [];
@@ -77,7 +77,7 @@ function GenrePage() {
           artistSongMap[songId].push(artistId);
         }
       });
-      
+
       console.log('Artist song map:', artistSongMap);
       return artistSongMap;
     } catch (err) {
@@ -89,17 +89,17 @@ function GenrePage() {
   const fetchGenreData = async () => {
     try {
       setLoading(true);
-      
+
       // Load genre info
       const genreResponse = await api.get(API_ENDPOINTS.GENRE_BY_ID(id));
       console.log('Genre response:', genreResponse.data);
-      
+
       let genreData = genreResponse.data.result || genreResponse.data;
-      
+
       // Load genre songs using dedicated endpoint
       const songsResponse = await api.get(API_ENDPOINTS.GENRE_SONGS(id));
       console.log('Genre songs response:', songsResponse.data);
-      
+
       let songsData = [];
       if (Array.isArray(songsResponse.data)) {
         songsData = songsResponse.data;
@@ -108,26 +108,26 @@ function GenrePage() {
       } else if (songsResponse.data.data && Array.isArray(songsResponse.data.data)) {
         songsData = songsResponse.data.data;
       }
-      
+
       // Load artists và artist-songs parallel
       const [artistsMap, artistSongMap] = await Promise.all([
         loadArtists(),
         loadArtistSongs()
       ]);
-      
+
       // Process songs với multi-artist mapping
       const processedSongs = songsData.map(song => {
         const songId = song.songId || song.id;
         const artistIds = artistSongMap[songId] || [];
-        
+
         // Lấy artist names từ artistIds
         const artistNames = artistIds
           .map(aId => artistsMap[aId] || 'Unknown Artist')
           .filter(name => name)
           .join(', ');
-        
+
         const artistName = artistNames || song.artist || 'Unknown Artist';
-        
+
         return {
           id: songId,
           title: song.title || 'Unknown Title',
@@ -142,7 +142,7 @@ function GenrePage() {
           color: getColorByGenre(parseInt(id))
         };
       });
-      
+
       setGenre({
         id: parseInt(id),
         name: genreData.genrename || genreData.name || 'Thể loại',
@@ -150,9 +150,9 @@ function GenrePage() {
         color: getColorByGenre(parseInt(id)),
         songCount: processedSongs.length
       });
-      
+
       setSongs(processedSongs);
-      
+
     } catch (error) {
       console.error('Error fetching genre:', error);
       navigate('/genres');
@@ -191,7 +191,7 @@ function GenrePage() {
 
   const formatDuration = (duration) => {
     if (!duration) return '00:00';
-    
+
     if (typeof duration === 'string') {
       if (duration.includes(':')) {
         const parts = duration.split(':');
@@ -202,20 +202,14 @@ function GenrePage() {
       }
       return duration;
     }
-    
+
     if (typeof duration === 'number') {
       const mins = Math.floor(duration / 60);
       const secs = duration % 60;
       return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
-    
-    return '00:00';
-  };
 
-  const handleShufflePlay = () => {
-    if (songs.length > 0) {
-      console.log(`Shuffle play ${songs.length} songs in ${genre?.name}`);
-    }
+    return '00:00';
   };
 
   if (loading) {
@@ -240,7 +234,7 @@ function GenrePage() {
 
   return (
     <div className="genre-page">
-      <div 
+      <div
         className="genre-header"
         style={{ backgroundColor: genre.color + '20', borderLeft: `6px solid ${genre.color}` }}
       >
@@ -261,19 +255,12 @@ function GenrePage() {
         </div>
       </div>
 
-      <div className="genre-controls">
-        <button className="btn-shuffle" onClick={handleShufflePlay}>
-          <Shuffle size={20} />
-          Phát ngẫu nhiên
-        </button>
-      </div>
-
       <div className="genre-content">
         <div className="section-header">
           <h2>Tất cả bài hát</h2>
           <span className="song-count">{songs.length} bài hát</span>
         </div>
-        
+
         {songs.length > 0 ? (
           <SongList songs={songs} />
         ) : (

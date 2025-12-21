@@ -72,32 +72,6 @@
   font-weight: 600;
 }
 
-/* Controls */
-.genre-controls {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.btn-shuffle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.875rem 1.5rem;
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-shuffle:hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
-}
-
 /* Content */
 .section-header {
   display: flex;
@@ -202,23 +176,15 @@
     padding: 1.5rem;
     margin: -1rem -1rem 1.5rem -1rem;
   }
-  
+
   .genre-title {
     font-size: 2rem;
   }
-  
+
   .genre-description {
     font-size: 1rem;
   }
-  
-  .genre-controls {
-    flex-direction: column;
-  }
-  
-  .btn-shuffle {
-    width: 100%;
-    justify-content: center;
-  }
+
 }
 
 @keyframes spin {

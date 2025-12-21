@@ -22,7 +22,8 @@
 .btn-control {
   background: none;
   border: none;
-  color: var(--text-secondary); /* Giữ nguyên cho các nút khác */
+  color: var(--text-secondary);
+  /* Giữ nguyên cho các nút khác */
   cursor: pointer;
   padding: 10px;
   border-radius: 50%;
@@ -34,7 +35,8 @@
 }
 
 .btn-control:hover:not(:disabled) {
-  color: var(--text-primary); /* Hover đổi sang trắng */
+  color: var(--text-primary);
+  /* Hover đổi sang trắng */
   background: rgba(255, 255, 255, 0.1);
   transform: scale(1.1);
 }
@@ -45,21 +47,25 @@
 }
 
 .btn-control.active {
-  color: var(--primary-color); /* Màu primary cho active state */
+  color: var(--primary-color);
+  /* Màu primary cho active state */
 }
 
 /* CHỈ RIÊNG NÚT PLAY/PAUSE CÓ MÀU PRIMARY MẶC ĐỊNH */
 .btn-play-pause {
-  width: 56px;
-  height: 56px;
-  background-color: var(--primary-color); /* MÀU PRIMARY MẶC ĐỊNH */
-  color: white; /* Icon màu trắng */
+  width: 40px;
+  height: 40px;
+  background-color: var(--primary-color);
+  /* MÀU PRIMARY MẶC ĐỊNH */
+  color: white;
+  /* Icon màu trắng */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Giữ nguyên hover effect */
 .btn-play-pause:hover:not(:disabled) {
-  background-color: var(--primary-dark); /* Hover đậm hơn */
+  background-color: var(--primary-dark);
+  /* Hover đậm hơn */
   color: white;
   transform: scale(1.05);
 }

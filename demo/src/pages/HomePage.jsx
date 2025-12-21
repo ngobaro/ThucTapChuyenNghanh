@@ -273,8 +273,15 @@ function HomePage() {
       <section className="trending-section">
         <h2>🔥 Trending Now</h2>
         <div className="song-grid">
-          {songs.slice(0, 12).map(song => (
-            <SongCard key={song.id} song={song} />
+          {/* FIX: Pass songs={songs.slice(0, 12)} (sub-queue) và index cho SongCard */}
+          {songs.slice(0, 12).map((song, index) => (
+            <SongCard 
+              key={song.id} 
+              song={song}
+              songs={songs.slice(0, 12)}  // ✅ Pass sub-list để queue = 12 songs
+              index={index}  // ✅ Pass index cho next/prev
+              isPlaying={false}  // Optional
+            />
           ))}
         </div>
       </section>

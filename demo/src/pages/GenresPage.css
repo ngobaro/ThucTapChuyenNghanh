@@ -2,6 +2,7 @@
 
 .genres-page {
   padding-bottom: 100px;
+  margin-left: 20px;
 }
 
 .genres-header {
@@ -13,11 +14,6 @@
   font-weight: 800;
   margin-bottom: 0.5rem;
   color: var(--text-primary);
-}
-
-.genres-header p {
-  font-size: 1.1rem;
-  color: var(--text-secondary);
 }
 
 .genres-grid {
@@ -111,8 +107,8 @@
   .genres-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .genres-header h1 {
     font-size: 2rem;
   }
-} 
+}

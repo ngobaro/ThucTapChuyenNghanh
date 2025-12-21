@@ -87,38 +87,13 @@
   font-weight: 500;
 }
 
-.album-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  color: #b3b3b3;
-  font-size: 14px;
-}
-
 .meta-item {
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
-/* Mô tả album */
-.album-description {
-  font-size: 16px;
-  line-height: 1.5;
-  color: #b3b3b3;
-  margin: 0;
-  max-width: 600px;
-}
-
 /* Controls */
-.album-controls {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 40px;
-  align-items: center;
-}
-
 .btn-play-large {
   background-color: #1db954;
   color: white;
@@ -136,26 +111,6 @@
 
 .btn-play-large:hover {
   background-color: #1ed760;
-}
-
-.btn-like,
-.btn-more {
-  background: none;
-  border: 1px solid #404040;
-  color: #b3b3b3;
-  padding: 12px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: border-color 0.2s, color 0.2s;
-}
-
-.btn-like:hover,
-.btn-more:hover {
-  border-color: #1db954;
-  color: #1db954;
 }
 
 /* Nội dung album */
@@ -210,8 +165,13 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Not found state */
@@ -263,15 +223,6 @@
 
   .album-artist {
     font-size: 1.25rem;
-  }
-
-  .album-controls {
-    justify-content: center;
-  }
-
-  .album-meta {
-    justify-content: center;
-    flex-wrap: wrap;
   }
 }
 

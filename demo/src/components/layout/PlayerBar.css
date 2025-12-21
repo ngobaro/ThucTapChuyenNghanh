@@ -108,6 +108,330 @@
   max-width: 200px;
 }
 
+/* Modal overlay và playlist-modal (center toàn màn hình) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+  overflow: auto; /* Cho phép scroll nội dung modal nếu dài */
+}
+
+.playlist-modal {
+  background: var(--bg-primary, #181818); /* Hoặc màu dark theme của bạn */
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px; /* Điều chỉnh theo nhu cầu, ví dụ 400-600px */
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.2s ease-out; /* Thêm animation */
+  transform: translateY(0); /* Đảm bảo center */
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-content {
+  padding: 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Phần create-playlist-section: Giữ nút bình thường, nhưng set relative cho form con absolute */
+.create-playlist-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Căn giữa nút theo chiều ngang */
+  justify-content: flex-start; /* Nút ở trên, form sẽ absolute center */
+  gap: 15px;
+  margin-bottom: 20px;
+  padding: 0 10px;
+  position: relative; /* Quan trọng: Để .create-playlist-form absolute relative đến section này */
+  min-height: 100px; /* Đảm bảo space cho form absolute */
+}
+
+.btn-create-playlist {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-create-playlist:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-create-playlist.active {
+  background: var(--accent-color, #1DB954);
+  border-color: var(--accent-color);
+  color: white;
+}
+
+/* Form tạo playlist: Thoát khỏi flow cha bằng absolute, center độc lập */
+.create-playlist-form {
+  position: absolute; /* Thoát khỏi lớp cha, không ảnh hưởng layout */
+  top: 50%; /* Center theo chiều dọc relative đến .create-playlist-section */
+  left: 50%; /* Center theo chiều ngang */
+  transform: translate(-50%, -50%); /* Chính xác center */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 300px; /* Giới hạn width để gọn gàng */
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 10; /* Đảm bảo nổi lên trên nút nếu cần */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* Thêm shadow để nổi bật */
+}
+
+.create-playlist-form input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.create-playlist-form input::placeholder {
+  color: var(--text-secondary);
+}
+
+.create-playlist-form input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.2);
+}
+
+.error-message {
+  color: #FF6B6B;
+  font-size: 12px;
+  text-align: center;
+  margin: 0;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  justify-content: center; /* Center các nút */
+}
+
+.btn-cancel,
+.btn-create {
+  flex: 1;
+  max-width: 120px;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-create {
+  background: var(--accent-color, #1DB954);
+  color: white;
+}
+
+.btn-create:hover:not(:disabled) {
+  background: #1ed760;
+}
+
+.btn-create:disabled,
+.btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Các phần khác như playlists-section */
+.playlists-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px; /* Thêm space nếu form absolute che khuất */
+}
+
+.playlists-section h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: var(--text-primary);
+  text-align: center; /* Center tiêu đề nếu muốn */
+}
+
+.loading-playlists,
+.no-playlists {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.loading-playlists p,
+.no-playlists p {
+  margin: 8px 0 0 0;
+}
+
+.no-playlists .subtext {
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.playlists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.playlist-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.playlist-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.playlist-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.playlist-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.playlist-info h5 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playlist-info p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Song actions (thêm nếu chưa có) */
+.song-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.btn-action {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-action:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-action.active {
+  color: var(--accent-color, #1DB954);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .player-bar {
@@ -122,5 +446,36 @@
   .song-title,
   .song-artist {
     max-width: 120px;
+  }
+
+  .playlist-modal {
+    max-width: 90vw;
+    margin: 0;
+    border-radius: 8px;
+  }
+
+  .create-playlist-section,
+  .create-playlist-form {
+    padding: 0 5px;
+  }
+
+  .create-playlist-form {
+    max-width: 280px; /* Giảm width trên mobile */
+    top: 60%; /* Điều chỉnh vị trí nếu cần */
+  }
+
+  .form-actions {
+    flex-direction: column; /* Stack nút trên mobile */
+  }
+
+  .btn-cancel,
+  .btn-create {
+    flex: none;
+    width: 100%;
+  }
+
+  .playlists-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 }

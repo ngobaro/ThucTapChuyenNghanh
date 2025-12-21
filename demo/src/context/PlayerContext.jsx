@@ -54,7 +54,7 @@ export function PlayerProvider({ children }) {
     setLastSavedSongId(null);
   }, []);
 
-  // ==================== NEXT / PREV - MOVED UP ====================
+  // ==================== NEXT / PREV ====================
   const nextSong = useCallback(() => {
     console.log('Next Song - Queue:', queue.length, 'Index:', queueIndex, 'Repeat:', repeat);
     
@@ -73,11 +73,19 @@ export function PlayerProvider({ children }) {
       return;
     }
     
-    const nextIndex = (queueIndex + 1) % queue.length;
+    let nextIndex = (queueIndex + 1) % queue.length;
+    
+    // Nếu shuffle on, random next (không lặp)
+    if (shuffle && queue.length > 2) {
+      const availableIndices = queue.map((_, i) => i).filter(i => i !== queueIndex);
+      nextIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+      console.log('Shuffle next index:', nextIndex);
+    }
+    
     console.log('Moving to next index:', nextIndex);
     setQueueIndex(nextIndex);
     playSong(queue[nextIndex], queue, nextIndex);
-  }, [queue, queueIndex, repeat]); // Temporarily remove playSong dependency
+  }, [queue, queueIndex, repeat, shuffle]); // FIX: Thêm shuffle vào deps
 
   const prevSong = useCallback(() => {
     console.log('Prev Song - Queue:', queue.length, 'Index:', queueIndex);
@@ -107,7 +115,7 @@ export function PlayerProvider({ children }) {
     console.log('Moving to prev index:', prevIndex);
     setQueueIndex(prevIndex);
     playSong(queue[prevIndex], queue, prevIndex);
-  }, [queue, queueIndex, currentTime]); // Temporarily remove playSong dependency
+  }, [queue, queueIndex, currentTime]); // FIX: Giữ nguyên, playSong sẽ ổn vì không phụ thuộc trực tiếp
 
   // ==================== AUDIO EVENT LISTENERS ====================
   useEffect(() => {
@@ -182,7 +190,7 @@ export function PlayerProvider({ children }) {
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
     };
-  }, [repeat, queueIndex, queue.length, volume, isMuted, nextSong]);
+  }, [repeat, queueIndex, queue.length, volume, isMuted, nextSong]); // FIX: Giữ nextSong trong deps, React sẽ handle ổn nếu không circular
 
   // Volume & mute
   useEffect(() => {

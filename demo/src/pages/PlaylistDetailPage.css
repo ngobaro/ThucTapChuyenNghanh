@@ -120,38 +120,6 @@
   padding: 24px 0;
 }
 
-.btn-play-large {
-  background-color: var(--spotify-green);
-  border: none;
-  border-radius: 50px;
-  padding: 14px 32px;
-  color: black;
-  font-weight: bold;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: transform 0.2s, background-color 0.2s;
-}
-
-.btn-play-large:hover {
-  transform: scale(1.05);
-  background-color: var(--spotify-hover);
-}
-
-.btn-shuffle, .btn-like, .btn-more {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.btn-shuffle:hover, .btn-like:hover, .btn-more:hover {
-  color: white;
-}
-
 /* Content Section */
 .playlist-content {
   background: rgba(0, 0, 0, 0.2);

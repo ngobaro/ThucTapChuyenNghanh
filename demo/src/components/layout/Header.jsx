@@ -190,7 +190,7 @@ function Header() {
   };
 
   const handleLogout = async () => {
-    try { await logout(); } catch {}
+    try { await logout(); } catch { }
     localStorage.clear();
     setIsLoggedIn(false);
     navigate('/');
@@ -211,11 +211,6 @@ function Header() {
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Tìm kiếm bài hát, nghệ sĩ, album..."
           />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')}>
-              <X size={16} />
-            </button>
-          )}
         </div>
 
         {showSearchResults && (

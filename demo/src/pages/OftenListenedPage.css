@@ -22,8 +22,13 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .hero-section {
@@ -76,11 +81,6 @@
   margin: 0;
 }
 
-.song-count {
-  color: var(--text-secondary);
-  font-size: 0.95rem;
-}
-
 .songs-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -126,16 +126,16 @@
   .often-page {
     padding: 16px;
   }
-  
+
   .hero-section h1 {
     font-size: 2rem;
   }
-  
+
   .songs-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 12px;
   }
-  
+
   .section-header {
     flex-direction: column;
     align-items: flex-start;
@@ -148,7 +148,7 @@
     grid-template-columns: 1fr;
     gap: 12px;
   }
-  
+
   .stats {
     flex-direction: column;
     gap: 8px;

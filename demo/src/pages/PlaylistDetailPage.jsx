@@ -31,10 +31,10 @@ function PlaylistDetailPage() {
     try {
       const response = await api.get(API_ENDPOINTS.ARTISTS);
       console.log('Artists response:', response.data);
-      
+
       const artistsMap = {};
       let artistsData = [];
-      
+
       if (Array.isArray(response.data)) {
         artistsData = response.data;
       } else if (response.data.result && Array.isArray(response.data.result)) {
@@ -42,13 +42,13 @@ function PlaylistDetailPage() {
       } else if (response.data.data && Array.isArray(response.data.data)) {
         artistsData = response.data.data;
       }
-      
+
       artistsData.forEach(artist => {
         const artistId = artist.idartist || artist.id;
         const artistName = artist.artistname || artist.name || 'Unknown Artist';
         artistsMap[artistId] = artistName;
       });
-      
+
       console.log('Artists map:', artistsMap);
       return artistsMap;
     } catch (err) {
@@ -62,20 +62,20 @@ function PlaylistDetailPage() {
     try {
       const response = await api.get(API_ENDPOINTS.ARTIST_SONGS.BASE);
       console.log('Artist songs response:', response.data);
-      
+
       const artistSongMap = {};
       let data = [];
-      
+
       if (Array.isArray(response.data)) {
         data = response.data;
       } else if (response.data.result && Array.isArray(response.data.result)) {
         data = response.data.result;
       }
-      
+
       data.forEach(item => {
         const songId = item.idsong;
         const artistId = item.idartist;
-        
+
         if (songId && artistId) {
           if (!artistSongMap[songId]) {
             artistSongMap[songId] = [];
@@ -83,7 +83,7 @@ function PlaylistDetailPage() {
           artistSongMap[songId].push(artistId);
         }
       });
-      
+
       console.log('Artist song map:', artistSongMap);
       return artistSongMap;
     } catch (err) {
@@ -97,10 +97,10 @@ function PlaylistDetailPage() {
     try {
       const response = await api.get(API_ENDPOINTS.ALBUMS);
       console.log('Albums response:', response.data);
-      
+
       const albumMapTemp = {};
       let albumsData = [];
-      
+
       if (Array.isArray(response.data)) {
         albumsData = response.data;
       } else if (response.data.result && Array.isArray(response.data.result)) {
@@ -108,13 +108,13 @@ function PlaylistDetailPage() {
       } else if (response.data.data && Array.isArray(response.data.data)) {
         albumsData = response.data.data;
       }
-      
+
       albumsData.forEach(album => {
         const albumId = album.idalbum || album.id;
         const albumName = album.albumname || album.title || 'Unknown Album';
         albumMapTemp[albumId] = albumName;
       });
-      
+
       console.log('Albums map:', albumMapTemp);
       return albumMapTemp;
     } catch (err) {
@@ -186,7 +186,7 @@ function PlaylistDetailPage() {
           // LẤY TÊN ALBUM: Map từ idalbum
           const albumId = song.idalbum || song.albumId;  // Fallback nếu tên trường khác
           const albumName = albumMapTemp[albumId] || null;
-          
+
           // FALLBACK: Nếu không có album, dùng `${title} (${artistName})`
           const finalAlbum = albumName || `${song.title || 'Unknown'} (${artistName})`;
 
@@ -347,27 +347,17 @@ function PlaylistDetailPage() {
         <div className="playlist-info">
           <div className="playlist-badge">PLAYLIST</div>
           <h1 className="playlist-title">{playlist.name}</h1>
-          <p className="playlist-description">{playlist.description}</p>
           <div className="playlist-meta">
             <span className="meta-item"><User size={16} />{playlist.creator}</span>
             <span className="meta-item">{playlist.songCount} bài hát</span>
-            <span className="meta-item"><Clock size={16} />{playlist.duration}</span>
             <span className="meta-item">Tạo ngày {playlist.createdDate}</span>
           </div>
         </div>
       </div>
 
       <div className="playlist-controls">
-        <button className="btn-play-large" onClick={() => playQueue(songs, 0)}>
-          <Play size={24} /> Phát tất cả
-        </button>
-        <button className="btn-shuffle" onClick={() => playQueue(songs, Math.floor(Math.random() * songs.length))}>
-          <Shuffle size={20} /> Trộn bài
-        </button>
-        <button className="btn-like"><Heart size={20} /></button>
-        <button className="btn-more"><MoreVertical size={20} /></button>
-        <button 
-          className="btn-delete-playlist" 
+        <button
+          className="btn-delete-playlist"
           onClick={handleDeletePlaylist}
           disabled={deletingPlaylist}
           style={{ opacity: deletingPlaylist ? 0.5 : 1 }}
@@ -386,10 +376,10 @@ function PlaylistDetailPage() {
           <h2>Danh sách bài hát</h2>
           <span className="song-count">{songs.length} bài</span>
         </div>
-        <SongList 
-          songs={songs} 
-          title="" 
-          showGenre={true} 
+        <SongList
+          songs={songs}
+          title=""
+          showGenre={true}
           playlistId={playlist.id} // Pass playlistId for delete in SongList
         />
       </div>

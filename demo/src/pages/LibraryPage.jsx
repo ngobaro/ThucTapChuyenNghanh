@@ -1,3 +1,5 @@
+// FILE: demo/src/pages/LibraryPage.jsx
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ListMusic, Heart, Plus, X, Loader2, Shuffle } from 'lucide-react';
@@ -94,15 +96,15 @@ function LibraryPage() {
     try {
       console.log('=== DEBUG: Fetching FULL user history for often ===');
       console.log('API Endpoint:', API_ENDPOINTS.USER_HISTORY(currentUserId));
-      
+
       const historyResponse = await api.get(API_ENDPOINTS.USER_HISTORY(currentUserId));
-      
+
       console.log('=== DEBUG: Full History API Response ===');
       console.log('Full response:', historyResponse);
       console.log('Response data:', historyResponse.data);
 
       let historyData = [];
-      
+
       // Xử lý nhiều cấu trúc response
       if (Array.isArray(historyResponse.data)) {
         historyData = historyResponse.data;
@@ -121,7 +123,7 @@ function LibraryPage() {
       }
 
       console.log('Full history data length:', historyData.length);
-      
+
       if (historyData.length === 0) {
         console.log('No history data found');
         setOftenSongs([]);
@@ -130,14 +132,14 @@ function LibraryPage() {
 
       // Sắp xếp theo thời gian (desc)
       const getDate = (item) => {
-        return item.listen_date || 
-               item.listenedAt || 
-               item.listenDate || 
-               item.listen_time || 
-               item.date || 
-               item.created_at;
+        return item.listen_date ||
+          item.listenedAt ||
+          item.listenDate ||
+          item.listen_time ||
+          item.date ||
+          item.created_at;
       };
-      
+
       historyData.sort((a, b) => {
         const dateA = getDate(a);
         const dateB = getDate(b);
@@ -151,13 +153,13 @@ function LibraryPage() {
       const seenSongIds = new Set();
 
       for (const item of shuffledHistory) {
-        const songId = item.idsong || 
-                      item.songId || 
-                      item.id_song || 
-                      item.diêten || 
-                      item.song_id || 
-                      item.id;
-        
+        const songId = item.idsong ||
+          item.songId ||
+          item.id_song ||
+          item.diêten ||
+          item.song_id ||
+          item.id;
+
         if (songId && !seenSongIds.has(songId) && selectedHistory.length < 18) {
           selectedHistory.push(item);
           seenSongIds.add(songId);
@@ -179,27 +181,27 @@ function LibraryPage() {
         try {
           console.log(`\n=== Processing random unique history item ${index + 1} ===`);
           console.log('Item data:', historyItem);
-          
-          const songId = historyItem.idsong || 
-                        historyItem.songId || 
-                        historyItem.id_song || 
-                        historyItem.diêten || 
-                        historyItem.song_id || 
-                        historyItem.id;
-          
+
+          const songId = historyItem.idsong ||
+            historyItem.songId ||
+            historyItem.id_song ||
+            historyItem.diêten ||
+            historyItem.song_id ||
+            historyItem.id;
+
           if (!songId) {
             console.error('No songId found in history item:', historyItem);
             return null;
           }
-          
+
           console.log(`Found songId: ${songId}`);
-          
+
           // Fetch thông tin bài hát
           const songResponse = await api.get(API_ENDPOINTS.SONG_BY_ID(songId));
           console.log(`Song ${songId} response:`, songResponse.data);
-          
+
           const song = songResponse.data.result || songResponse.data;
-          
+
           if (!song) {
             console.error(`Song ${songId} not found`);
             return null;
@@ -216,15 +218,15 @@ function LibraryPage() {
 
           // Lấy thời gian nghe
           const getListenDate = (item) => {
-            return item.listen_date || 
-                   item.listenedAt || 
-                   item.listenDate || 
-                   item.listen_time || 
-                   item.date || 
-                   item.created_at ||
-                   item.time;
+            return item.listen_date ||
+              item.listenedAt ||
+              item.listenDate ||
+              item.listen_time ||
+              item.date ||
+              item.created_at ||
+              item.time;
           };
-          
+
           const listenDateField = getListenDate(historyItem);
           const listenedAt = listenDateField ? new Date(listenDateField) : new Date();
           if (isNaN(listenedAt.getTime())) {
@@ -233,17 +235,17 @@ function LibraryPage() {
           const timeAgo = getTimeAgo(listenedAt);
 
           // Lấy playCount nếu có
-          const playCount = historyItem.playCount || 
-                          historyItem.play_count || 
-                          historyItem.count || 
-                          song.views || song.listens || 1;
+          const playCount = historyItem.playCount ||
+            historyItem.play_count ||
+            historyItem.count ||
+            song.views || song.listens || 1;
 
           return {
             id: song.songId || song.id || songId,
             title: song.title || song.name || 'Unknown Title',
             artist: artistName,
-            album: song.idalbum ? `Album ${song.idalbum}` : 
-                  song.album || song.albumname || 'Single',
+            album: song.idalbum ? `Album ${song.idalbum}` :
+              song.album || song.albumname || 'Single',
             duration: song.duration || 0,
             coverUrl: song.avatar || song.cover || song.image || '/default-cover.png',
             audioUrl: song.path || song.url || song.audio_url || '',
@@ -264,7 +266,7 @@ function LibraryPage() {
       console.log('\n=== FINAL: Often listened songs (18 unique random) ===');
       console.log('Total songs:', songs.length);
       console.log('Songs data:', songs);
-      
+
       setOftenSongs(songs);
 
     } catch (error) {
@@ -284,12 +286,12 @@ function LibraryPage() {
         try {
           const userRes = await api.get(API_ENDPOINTS.MY_INFO);
           console.log('User info response:', userRes.data);
-          
+
           const userData = userRes.data?.result || userRes.data;
           console.log('User data:', userData);
-          
+
           currentUserId = userData?.id || userData?.userId || userData?.id_user;
-          
+
           if (currentUserId) {
             console.log('Found userId:', currentUserId);
             localStorage.setItem('userId', currentUserId.toString());
@@ -498,12 +500,18 @@ function LibraryPage() {
           <div className="often-section"> {/* Reuse styles from OftenListenedPage */}
             <div className="section-header">
               <h2>🎵 Bài hát bạn thường nghe</h2>
-              <span className="song-count">18 bài ngẫu nhiên từ lịch sử nghe • <Shuffle size={16} /> Ngẫu nhiên</span>
             </div>
             {oftenSongs.length > 0 ? (
               <div className="songs-grid">
-                {oftenSongs.map((song) => (
-                  <SongCard key={song.id} song={song} />
+                {/* FIX: Pass songs={oftenSongs} (full queue) và index cho SongCard */}
+                {oftenSongs.map((song, index) => (
+                  <SongCard 
+                    key={song.id} 
+                    song={song}
+                    songs={oftenSongs}  // ✅ Pass full oftenSongs list (queue = tất cả often songs)
+                    index={index}  // ✅ Pass index cho next/prev đúng vị trí
+                    isPlaying={false}  // Optional
+                  />
                 ))}
               </div>
             ) : (

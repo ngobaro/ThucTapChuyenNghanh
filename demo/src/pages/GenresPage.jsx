@@ -19,22 +19,22 @@ function GenresPage() {
       setLoading(true);
       const response = await api.get(API_ENDPOINTS.GENRES);
       console.log('Genres response:', response.data);
-      
+
       let genresData = [];
-      
+
       if (Array.isArray(response.data)) {
         genresData = response.data;
       } else if (response.data.result && Array.isArray(response.data.result)) {
         genresData = response.data.result;
       }
-      
+
       // Get song count for each genre using dedicated endpoint
       const genresWithCounts = await Promise.all(
         genresData.map(async (genre) => {
           try {
             const songsResponse = await api.get(API_ENDPOINTS.GENRE_SONGS(genre.idgenre || genre.id));
             let songs = [];
-            
+
             if (Array.isArray(songsResponse.data)) {
               songs = songsResponse.data;
             } else if (songsResponse.data.result && Array.isArray(songsResponse.data.result)) {
@@ -42,7 +42,7 @@ function GenresPage() {
             } else if (songsResponse.data.data && Array.isArray(songsResponse.data.data)) {
               songs = songsResponse.data.data;
             }
-            
+
             return {
               id: genre.idgenre || genre.id,
               name: genre.genrename || genre.name || 'Unknown Genre',
@@ -62,9 +62,9 @@ function GenresPage() {
           }
         })
       );
-      
+
       setGenres(genresWithCounts);
-      
+
     } catch (error) {
       console.error('Error loading genres:', error);
       // Fallback data
@@ -81,7 +81,7 @@ function GenresPage() {
   const getColorByGenreId = (id) => {
     const colors = {
       1: '#1DB954',
-      2: '#FF6B6B', 
+      2: '#FF6B6B',
       3: '#4ECDC4',
       4: '#FF9F1C',
       5: '#9D4EDD',
@@ -122,12 +122,11 @@ function GenresPage() {
     <div className="genres-page">
       <div className="genres-header">
         <h1>Thể loại</h1>
-        <p>Khám phá âm nhạc theo thể loại yêu thích của bạn</p>
       </div>
 
       <div className="genres-grid">
         {genres.map((genre) => (
-          <div 
+          <div
             key={genre.id}
             className="genre-card"
             onClick={() => handleGenreClick(genre.id)}
@@ -138,14 +137,14 @@ function GenresPage() {
               <p className="genre-description">{genre.description}</p>
               <div className="genre-count">{genre.count} bài hát</div>
             </div>
-            <div 
+            <div
               className="genre-color-block"
               style={{ backgroundColor: genre.color }}
             />
           </div>
         ))}
       </div>
-      
+
       {genres.length === 0 && (
         <div className="empty-state">
           <p>Chưa có thể loại nào</p>

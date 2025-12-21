@@ -147,6 +147,7 @@ function FavoritesPage() {
           album: song.idalbum ? `Album ${song.idalbum}` : 'Single', // Có thể cải thiện sau với albumMap
           duration: formatDuration(song.duration),
           coverUrl: song.avatar || '/default-cover.png', // Real cover
+          audioUrl: song.path || '', // Thêm audioUrl cho play
           addedDate: new Date().toLocaleDateString('vi-VN'),
           genreId: song.genreId || 1, // Fallback
           genreName: getGenreName(song.genreId),
@@ -169,6 +170,7 @@ function FavoritesPage() {
             album: 'After Hours',
             duration: '3:22',
             coverUrl: '/default-cover.png',
+            audioUrl: '', // Fallback empty
             addedDate: '2024-01-15',
             genreId: 1,
             genreName: 'Pop',
@@ -181,6 +183,7 @@ function FavoritesPage() {
             album: 'Endless Summer Vacation',
             duration: '3:20',
             coverUrl: '/default-cover.png',
+            audioUrl: '', // Fallback empty
             addedDate: '2024-02-10',
             genreId: 4,
             genreName: 'R&B',
@@ -275,10 +278,13 @@ function FavoritesPage() {
         <section className="trending-section"> {/* Match HomePage trending style */}
           <h2>🔥 Danh sách yêu thích của bạn</h2>
           <div className="song-grid"> {/* Grid như Trending Now */}
-            {favoriteSongs.map(song => (
+            {/* FIX: Thêm index và songs prop cho SongCard */}
+            {favoriteSongs.map((song, index) => (
               <SongCard
                 key={song.id}
                 song={song}
+                songs={favoriteSongs}  // ✅ Pass full favorites list (queue)
+                index={index}  // ✅ Pass index
                 onRemoveFavorite={handleRemoveFavorite} // Pass callback cho remove
               />
             ))}

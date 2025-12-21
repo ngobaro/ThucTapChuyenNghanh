@@ -1,4 +1,7 @@
 /* FILE: demo/src/pages/DiscoverPage.css */
+.rank-page {
+  margin-left: 20px;
+}
 
 .discover-page {
   padding: 20px;
@@ -11,11 +14,6 @@
 .page-header h1 {
   font-size: 32px;
   margin-bottom: 8px;
-}
-
-.page-header p {
-  color: var(--text-secondary);
-  font-size: 16px;
 }
 
 .discover-section {
@@ -31,20 +29,6 @@
 
 .section-header h2 {
   font-size: 24px;
-}
-
-.btn-view-all {
-  padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-view-all:hover {
-  background: rgba(255, 255, 255, 0.2);
 }
 
 .song-grid {
@@ -99,5 +83,7 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }

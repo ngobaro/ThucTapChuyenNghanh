@@ -34,7 +34,6 @@ function Sidebar() {
       <nav className="sidebar-nav">
         {/* Menu chính */}
         <div className="nav-section">
-          <h3 className="section-title">Menu</h3>
           {mainMenu.map((item) => {
             const Icon = item.icon;
             return (
@@ -54,7 +53,6 @@ function Sidebar() {
 
         {/* Menu cá nhân */}
         <div className="nav-section">
-          <h3 className="section-title">Cá nhân</h3>
           {personalMenu.map((item) => {
             const Icon = item.icon;
             return (
@@ -74,7 +72,6 @@ function Sidebar() {
 
         {/* Playlist & Album */}
         <div className="nav-section">
-          <h3 className="section-title">Bộ sưu tập</h3>
           {collectionMenu.map((item) => {
             const Icon = item.icon;
             return (
@@ -92,8 +89,8 @@ function Sidebar() {
           })}
         </div>
 
-       
-        
+
+
       </nav>
     </aside>
   );

@@ -1,17 +1,29 @@
-// demo/src/components/music/SongCard.jsx
 import { usePlayer } from '../../context/PlayerContext';
-import { Play } from 'lucide-react';
+import { Play, Pause } from 'lucide-react';
 import './SongCard.css';
 
-function SongCard({ song, isPlaying = false }) {
-  const { playSong, currentSong } = usePlayer();
+function SongCard({
+  song,
+  songs = [],   // ✅ queue
+  index = 0,    // ✅ index trong queue
+  isPlaying = false
+}) {
+  const { playSong, togglePlay, currentSong } = usePlayer();
 
-  // Kiểm tra xem bài hát này có đang được phát không
-  const playing = isPlaying || (currentSong && currentSong.id === song.id);
+  const isCurrent = currentSong && currentSong.id === song.id;
+  const playing = isPlaying || isCurrent;
 
   const handlePlayClick = (e) => {
     e.stopPropagation();
-    playSong(song);
+
+    // Click lại bài đang phát → pause / resume
+    if (isCurrent) {
+      togglePlay();
+      return;
+    }
+
+    // 🔥 QUAN TRỌNG: PHẢI TRUYỀN queue + index
+    playSong(song, songs, index);
   };
 
   return (
@@ -31,7 +43,11 @@ function SongCard({ song, isPlaying = false }) {
           onClick={handlePlayClick}
           aria-label={`Phát bài hát ${song.title}`}
         >
-          <Play size={20} fill="currentColor" />
+          {playing ? (
+            <Pause size={20} fill="currentColor" />
+          ) : (
+            <Play size={20} fill="currentColor" />
+          )}
         </button>
       </div>
 

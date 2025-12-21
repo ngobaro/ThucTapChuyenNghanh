@@ -25,10 +25,10 @@ function AlbumDetailPage() {
     try {
       const response = await api.get(API_ENDPOINTS.ARTISTS);
       console.log('Artists response:', response.data);
-      
+
       const artistsMap = {};
       let artistsData = [];
-      
+
       if (Array.isArray(response.data)) {
         artistsData = response.data;
       } else if (response.data.result && Array.isArray(response.data.result)) {
@@ -36,13 +36,13 @@ function AlbumDetailPage() {
       } else if (response.data.data && Array.isArray(response.data.data)) {
         artistsData = response.data.data;
       }
-      
+
       artistsData.forEach(artist => {
         const artistId = artist.idartist || artist.id;
         const artistName = artist.artistname || artist.name || 'Unknown Artist';
         artistsMap[artistId] = artistName;
       });
-      
+
       console.log('Artists map:', artistsMap);
       return artistsMap;
     } catch (err) {
@@ -56,20 +56,20 @@ function AlbumDetailPage() {
     try {
       const response = await api.get(API_ENDPOINTS.ARTIST_SONGS.BASE);
       console.log('Artist songs response:', response.data);
-      
+
       const artistSongMap = {};
       let data = [];
-      
+
       if (Array.isArray(response.data)) {
         data = response.data;
       } else if (response.data.result && Array.isArray(response.data.result)) {
         data = response.data.result;
       }
-      
+
       data.forEach(item => {
         const songId = item.idsong;
         const artistId = item.idartist;
-        
+
         if (songId && artistId) {
           if (!artistSongMap[songId]) {
             artistSongMap[songId] = [];
@@ -77,7 +77,7 @@ function AlbumDetailPage() {
           artistSongMap[songId].push(artistId);
         }
       });
-      
+
       console.log('Artist song map:', artistSongMap);
       return artistSongMap;
     } catch (err) {
@@ -89,52 +89,52 @@ function AlbumDetailPage() {
   const fetchAlbumData = async () => {
     try {
       setLoading(true);
-      
+
       // Lấy thông tin album
       const albumResponse = await api.get(API_ENDPOINTS.ALBUM_BY_ID(id));
       console.log('Album response:', albumResponse.data);
-      
+
       let albumData = albumResponse.data.result || albumResponse.data;
-      
+
       // Load artists và artist-songs parallel
       const [artistsMap, artistSongMap] = await Promise.all([
         loadArtists(),
         loadArtistSongs()
       ]);
-      
+
       // Lấy thông tin artist (main artist cho album) từ map để tránh request thừa
       let artistName = 'Unknown Artist';
       if (albumData.idartist) {
         artistName = artistsMap[albumData.idartist] || 'Unknown Artist';
       }
-      
+
       // Lấy danh sách bài hát trong album (sử dụng params album=id, assuming API supports)
       const songsResponse = await api.get(API_ENDPOINTS.SONGS, {
         params: { album: id }
       });
-      
+
       console.log('Album songs response:', songsResponse.data);
-      
+
       let songsData = [];
       if (Array.isArray(songsResponse.data)) {
         songsData = songsResponse.data;
       } else if (songsResponse.data.result && Array.isArray(songsResponse.data.result)) {
         songsData = songsResponse.data.result;
       }
-      
+
       // Format songs data với multi-artist mapping
       const formattedSongs = songsData.map((song, index) => {
         const songId = song.songId || song.id;
         const artistIds = artistSongMap[songId] || [];
-        
+
         // Lấy artist names từ artistIds
         const artistNames = artistIds
           .map(aId => artistsMap[aId] || 'Unknown Artist')
           .filter(name => name)
           .join(', ');
-        
+
         const songArtist = artistNames || song.artist || artistName;
-        
+
         return {
           id: songId,
           title: song.title || 'Unknown Title',
@@ -150,13 +150,13 @@ function AlbumDetailPage() {
           color: getColorByGenre(song.genreId)
         };
       });
-      
+
       // Tính tổng thời lượng
       const totalDuration = calculateTotalDuration(formattedSongs);
-      
+
       // Thêm cover cho album nếu có
       const albumCover = albumData.cover || albumData.avatar || '/default-album.jpg';
-      
+
       setAlbum({
         id: albumData.idalbum || albumData.id,
         title: albumData.albumname || albumData.title || 'Unknown Album',
@@ -169,9 +169,9 @@ function AlbumDetailPage() {
         songCount: formattedSongs.length,
         cover: albumCover  // Thêm cover vào album state
       });
-      
+
       setSongs(formattedSongs);
-      
+
     } catch (error) {
       console.error('Error fetching album:', error);
       navigate('/albums');
@@ -193,7 +193,7 @@ function AlbumDetailPage() {
 
   const formatDuration = (duration) => {
     if (!duration) return '00:00';
-    
+
     if (typeof duration === 'string') {
       if (duration.includes(':')) {
         const parts = duration.split(':');
@@ -204,13 +204,13 @@ function AlbumDetailPage() {
       }
       return duration;
     }
-    
+
     if (typeof duration === 'number') {
       const mins = Math.floor(duration / 60);
       const secs = duration % 60;
       return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
-    
+
     return '00:00';
   };
 
@@ -230,7 +230,7 @@ function AlbumDetailPage() {
 
   const calculateTotalDuration = (songs) => {
     let totalSeconds = 0;
-    
+
     songs.forEach(song => {
       const duration = song.duration;
       if (duration && typeof duration === 'string' && duration.includes(':')) {
@@ -242,10 +242,10 @@ function AlbumDetailPage() {
         }
       }
     });
-    
+
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
-    
+
     if (hours > 0) {
       return `${hours} giờ ${minutes} phút`;
     }
@@ -288,9 +288,9 @@ function AlbumDetailPage() {
       <div className="album-header">
         <div className="album-cover-large">
           {album.cover && album.cover !== '/default-album.jpg' ? (
-            <img 
-              src={album.cover} 
-              alt={`${album.title} cover`} 
+            <img
+              src={album.cover}
+              alt={`${album.title} cover`}
               className="album-image"
               onError={(e) => {
                 e.target.style.display = 'none'; // Ẩn img nếu load lỗi, fallback sang icon
@@ -298,7 +298,7 @@ function AlbumDetailPage() {
             />
           ) : null}
           {!album.cover || album.cover === '/default-album.jpg' ? (
-            <div 
+            <div
               className="album-fallback-cover"
               style={{ backgroundColor: album.color }}
             >
@@ -306,51 +306,12 @@ function AlbumDetailPage() {
             </div>
           ) : null}
         </div>
-        
+
         <div className="album-info">
           <div className="album-badge">ALBUM</div>
           <h1 className="album-title">{album.title}</h1>
           <h2 className="album-artist">{album.artist}</h2>
-          
-          <div className="album-meta">
-            <span className="meta-item">
-              {album.year}
-            </span>
-            <span className="meta-item">
-              •
-            </span>
-            <span className="meta-item">
-              {album.genre}
-            </span>
-            <span className="meta-item">
-              •
-            </span>
-            <span className="meta-item">
-              {album.songCount} bài hát
-            </span>
-            <span className="meta-item">
-              •
-            </span>
-            <span className="meta-item">
-              {album.duration}
-            </span>
-          </div>
-          
-          <p className="album-description">{album.description}</p>
         </div>
-      </div>
-
-      <div className="album-controls">
-        <button className="btn-play-large" onClick={handlePlayAll}>
-          <Play size={24} />
-          Phát tất cả
-        </button>
-        <button className="btn-like">
-          <Heart size={20} />
-        </button>
-        <button className="btn-more">
-          <MoreVertical size={20} />
-        </button>
       </div>
 
       <div className="album-content">
@@ -358,7 +319,7 @@ function AlbumDetailPage() {
           <h2>Danh sách bài hát</h2>
           <span className="song-count">{songs.length} bài hát</span>
         </div>
-        
+
         {songs.length > 0 ? (
           <SongList songs={songs} showTrackNumber={true} />
         ) : (
