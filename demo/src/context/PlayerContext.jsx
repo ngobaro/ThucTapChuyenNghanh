@@ -1,5 +1,7 @@
 // FILE: demo/src/context/PlayerContext.jsx
 import { createContext, useContext, useRef, useState, useEffect, useCallback } from 'react';
+import api from '../services/api';
+import { API_ENDPOINTS } from '../utils/constants';
 
 const PlayerContext = createContext();
 
@@ -13,21 +15,131 @@ export function PlayerProvider({ children }) {
   const [isMuted, setIsMuted] = useState(false);
   const [queue, setQueue] = useState([]);
   const [queueIndex, setQueueIndex] = useState(0);
-  const [repeat, setRepeat] = useState(false); // false (off) | 'all' | 'one'
+  const [repeat, setRepeat] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Theo dõi bài hát đã lưu lịch sử để tránh lưu trùng
   const [lastSavedSongId, setLastSavedSongId] = useState(null);
 
-  // Hàm lưu lịch sử nghe nhạc
+  // ==================== FAVORITES STATE ====================
+  const [favoriteStates, setFavoriteStates] = useState({});
+  const [userId, setUserId] = useState(null);
+  const [favoritesInitialized, setFavoritesInitialized] = useState(false);
+
+  // ==================== FETCH USER ID ====================
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const storedUserId = localStorage.getItem('userId');
+      if (storedUserId) {
+        const parsedId = Number(storedUserId);
+        if (!isNaN(parsedId)) {
+          setUserId(parsedId);
+          return;
+        }
+      }
+
+      try {
+        const res = await api.get(API_ENDPOINTS.MY_INFO);
+        const userData = res.data?.result || res.data;
+        const fetchedId = userData?.id || userData?.userId;
+        if (fetchedId) {
+          const id = Number(fetchedId);
+          setUserId(id);
+          localStorage.setItem('userId', id.toString());
+        }
+      } catch (err) {
+        console.error('Fetch userId error:', err);
+        if (err.response?.status === 401) {
+          localStorage.clear();
+          window.location.href = '/login';
+        }
+      }
+    };
+
+    fetchUserId();
+  }, []);
+
+  // ==================== LOAD FAVORITES ====================
+  useEffect(() => {
+    if (userId && !favoritesInitialized) {
+      loadFavorites();
+    }
+  }, [userId, favoritesInitialized]);
+
+  const loadFavorites = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      const res = await api.get(API_ENDPOINTS.USER_FAVORITES(userId));
+      const favSongs = res.data?.result || [];
+      const favMap = {};
+      favSongs.forEach(song => {
+        const id = song.songId || song.id;
+        if (id) favMap[id] = true;
+      });
+      setFavoriteStates(favMap);
+      setFavoritesInitialized(true);
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+      setFavoritesInitialized(true);
+    }
+  }, [userId]);
+
+  const toggleFavorite = useCallback(async (songId) => {
+    if (!userId) {
+      alert('Vui lòng đăng nhập để sử dụng chức năng này');
+      return false;
+    }
+
+    const isFavorited = !!favoriteStates[songId];
+
+    setFavoriteStates(prev => ({
+      ...prev,
+      [songId]: !isFavorited
+    }));
+
+    try {
+      if (isFavorited) {
+        await api.delete(API_ENDPOINTS.REMOVE_FAVORITE(userId, songId));
+      } else {
+        await api.post(API_ENDPOINTS.ADD_FAVORITE(userId, songId), {});
+      }
+      return true;
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      setFavoriteStates(prev => ({
+        ...prev,
+        [songId]: isFavorited
+      }));
+      alert('Có lỗi xảy ra khi cập nhật danh sách yêu thích: ' + (error.response?.data?.message || error.message));
+      return false;
+    }
+  }, [userId, favoriteStates]);
+
+  const isFavorite = useCallback((songId) => {
+    return !!favoriteStates[songId];
+  }, [favoriteStates]);
+
+  const refreshFavorites = useCallback(() => {
+    if (userId) {
+      setFavoritesInitialized(false);
+    }
+  }, [userId]);
+
+  const forceRefreshFavorites = useCallback(() => {
+    setFavoritesInitialized(false);
+    if (userId) {
+      loadFavorites();
+    }
+  }, [userId, loadFavorites]);
+
+  // ==================== LISTEN HISTORY ====================
   const saveListenHistory = useCallback(async (songId) => {
     if (!songId || lastSavedSongId === songId) return;
 
-    const userId = localStorage.getItem('userId');
+    const userIdLocal = localStorage.getItem('userId');
     const accessToken = localStorage.getItem('token');
 
-    if (!userId || !accessToken) return;
+    if (!userIdLocal || !accessToken) return;
 
     try {
       const response = await fetch('http://localhost:8080/music/listenhistories', {
@@ -37,7 +149,7 @@ export function PlayerProvider({ children }) {
           'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          iduser: Number(userId),
+          iduser: Number(userIdLocal),
           idsong: Number(songId),
         }),
       });
@@ -54,68 +166,48 @@ export function PlayerProvider({ children }) {
     setLastSavedSongId(null);
   }, []);
 
-  // ==================== NEXT / PREV ====================
+  // ==================== NEXT / PREV SONG ====================
   const nextSong = useCallback(() => {
-    console.log('Next Song - Queue:', queue.length, 'Index:', queueIndex, 'Repeat:', repeat);
-    
-    if (queue.length === 0) {
-      console.log('Queue is empty, cannot go to next');
-      return;
-    }
-    
-    // Nếu chỉ có 1 bài trong queue
+    if (queue.length === 0) return;
+
     if (queue.length === 1) {
       if (repeat === 'one' || repeat === 'all') {
-        console.log('Only 1 song, replaying...');
         audioRef.current.currentTime = 0;
         audioRef.current.play().catch(console.error);
       }
       return;
     }
-    
+
     let nextIndex = (queueIndex + 1) % queue.length;
-    
-    // Nếu shuffle on, random next (không lặp)
+
     if (shuffle && queue.length > 2) {
-      const availableIndices = queue.map((_, i) => i).filter(i => i !== queueIndex);
-      nextIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
-      console.log('Shuffle next index:', nextIndex);
+      const available = queue.map((_, i) => i).filter(i => i !== queueIndex);
+      nextIndex = available[Math.floor(Math.random() * available.length)];
     }
-    
-    console.log('Moving to next index:', nextIndex);
+
     setQueueIndex(nextIndex);
     playSong(queue[nextIndex], queue, nextIndex);
-  }, [queue, queueIndex, repeat, shuffle]); // FIX: Thêm shuffle vào deps
+  }, [queue, queueIndex, repeat, shuffle]);
 
   const prevSong = useCallback(() => {
-    console.log('Prev Song - Queue:', queue.length, 'Index:', queueIndex);
-    
-    if (queue.length === 0) {
-      console.log('Queue is empty, cannot go to prev');
-      return;
-    }
+    if (queue.length === 0) return;
 
-    // Nếu đã nghe quá 3 giây, quay về đầu bài
     if (currentTime > 3) {
-      console.log('More than 3s played, restarting current song');
       audioRef.current.currentTime = 0;
       setCurrentTime(0);
       return;
     }
 
-    // Nếu chỉ có 1 bài trong queue
     if (queue.length === 1) {
-      console.log('Only 1 song, restarting...');
       audioRef.current.currentTime = 0;
       setCurrentTime(0);
       return;
     }
 
     const prevIndex = (queueIndex - 1 + queue.length) % queue.length;
-    console.log('Moving to prev index:', prevIndex);
     setQueueIndex(prevIndex);
     playSong(queue[prevIndex], queue, prevIndex);
-  }, [queue, queueIndex, currentTime]); // FIX: Giữ nguyên, playSong sẽ ổn vì không phụ thuộc trực tiếp
+  }, [queue, queueIndex, currentTime]);
 
   // ==================== AUDIO EVENT LISTENERS ====================
   useEffect(() => {
@@ -137,31 +229,24 @@ export function PlayerProvider({ children }) {
     const handlePlaying = () => setIsLoading(false);
 
     const handleEnded = () => {
-      console.log('Song ended - Repeat:', repeat, 'Queue:', queue.length, 'Index:', queueIndex);
-      
       if (repeat === 'one') {
-        console.log('Repeat one, replaying...');
         audio.currentTime = 0;
         audio.play().catch(console.error);
         return;
       }
 
-      // Nếu repeat 'all' hoặc chưa hết queue → next
       if (repeat === 'all' || queueIndex < queue.length - 1) {
-        console.log('Moving to next song...');
         nextSong();
       } else {
-        // Hết queue và repeat off → dừng
-        console.log('End of queue, stopping...');
         setIsPlaying(false);
       }
     };
 
-    const handleError = (e) => {
-      console.error('Audio error:', e);
+    const handleError = () => {
       setIsPlaying(false);
       setIsLoading(false);
     };
+
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
 
@@ -190,9 +275,8 @@ export function PlayerProvider({ children }) {
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
     };
-  }, [repeat, queueIndex, queue.length, volume, isMuted, nextSong]); // FIX: Giữ nextSong trong deps, React sẽ handle ổn nếu không circular
+  }, [repeat, queueIndex, queue.length, volume, isMuted, nextSong]);
 
-  // Volume & mute
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = isMuted ? 0 : volume;
@@ -205,32 +289,24 @@ export function PlayerProvider({ children }) {
   const toggleShuffle = useCallback(() => {
     setShuffle(prev => {
       const newShuffle = !prev;
-      console.log('Toggle shuffle:', newShuffle);
-
       if (newShuffle && queue.length > 1) {
         const current = queue[queueIndex];
         const remaining = queue.filter((_, i) => i !== queueIndex);
-        const shuffledRemaining = [...remaining].sort(() => Math.random() - 0.5);
-        const newQueue = [current, ...shuffledRemaining];
-        console.log('Shuffled queue:', newQueue.map(s => s.title));
-        setQueue(newQueue);
+        const shuffled = [...remaining].sort(() => Math.random() - 0.5);
+        setQueue([current, ...shuffled]);
         setQueueIndex(0);
       }
-      // Khi tắt: giữ nguyên queue hiện tại (hành vi phổ biến)
-
       return newShuffle;
     });
   }, [queue, queueIndex]);
 
-  // ==================== PLAY SONG ====================
+  // ==================== PLAY SONG – ĐÃ SỬA: KHÔNG TỰ ĐỘNG TẮT SHUFFLE ====================
   const playSong = useCallback((song, songList = [], index = 0) => {
-    console.log('Play song:', song?.title, 'List:', songList.length, 'Index:', index);
-    
     if (!song?.audioUrl) {
       console.log('No audio URL');
       return;
     }
-    
+
     const audio = audioRef.current;
 
     resetSavedHistoryFlag();
@@ -251,9 +327,10 @@ export function PlayerProvider({ children }) {
       setQueueIndex(actualIndex >= 0 ? actualIndex : 0);
       console.log('Queue updated:', songList.length, 'songs, index:', actualIndex >= 0 ? actualIndex : 0);
 
-      if (shuffle) setShuffle(false);
+      // === ĐÃ XÓA DÒNG TỰ ĐỘNG TẮT SHUFFLE ===
+      // Không còn: if (shuffle) setShuffle(false);
+      // Giờ shuffle sẽ giữ nguyên trạng thái khi phát queue mới
     } else {
-      // Nếu không có songList, tạo queue với 1 bài hiện tại
       console.log('No song list, creating single-song queue');
       setQueue([song]);
       setQueueIndex(0);
@@ -268,7 +345,7 @@ export function PlayerProvider({ children }) {
       setIsPlaying(false);
       setIsLoading(false);
     });
-  }, [saveListenHistory, resetSavedHistoryFlag, shuffle]);
+  }, [saveListenHistory, resetSavedHistoryFlag]);
 
   const pauseSong = useCallback(() => {
     audioRef.current.pause();
@@ -310,17 +387,12 @@ export function PlayerProvider({ children }) {
   const playQueue = useCallback((songs, startIndex = 0) => {
     if (!songs || songs.length === 0) return;
 
-    console.log('Play queue:', songs.length, 'songs, starting at:', startIndex);
     setQueue(songs);
     const index = startIndex >= songs.length ? 0 : startIndex;
     setQueueIndex(index);
-
-    if (shuffle) setShuffle(false);
-
     playSong(songs[index], songs, index);
-  }, [shuffle, playSong]);
+  }, [playSong]);
 
-  // Toggle repeat: false → 'all' → 'one' → false
   const toggleRepeat = useCallback(() => {
     setRepeat(prev => {
       if (prev === false) return 'all';
@@ -332,22 +404,15 @@ export function PlayerProvider({ children }) {
   const addToQueue = useCallback((song) => {
     setQueue(prev => {
       if (prev.some(s => s.id === song.id)) return prev;
-      const newQueue = [...prev, song];
-      console.log('Added to queue:', song.title, 'Total:', newQueue.length);
-      return newQueue;
+      return [...prev, song];
     });
   }, []);
 
   const removeFromQueue = useCallback((songId) => {
-    setQueue(prev => {
-      const newQueue = prev.filter(s => s.id !== songId);
-      console.log('Removed from queue, remaining:', newQueue.length);
-      return newQueue;
-    });
+    setQueue(prev => prev.filter(s => s.id !== songId));
   }, []);
 
   const clearQueue = useCallback(() => {
-    console.log('Clearing queue');
     setQueue([]);
     setQueueIndex(0);
     setCurrentSong(null);
@@ -358,14 +423,48 @@ export function PlayerProvider({ children }) {
     audioRef.current.src = '';
   }, []);
 
+  // ==================== PROVIDER VALUE ====================
   return (
     <PlayerContext.Provider value={{
-      audioRef, currentSong, isPlaying, currentTime, duration, volume, isMuted,
-      queue, queueIndex, repeat, shuffle, isLoading,
+      audioRef,
+      currentSong,
+      isPlaying,
+      currentTime,
+      duration,
+      volume,
+      isMuted,
+      queue,
+      queueIndex,
+      repeat,
+      shuffle,
+      isLoading,
 
-      playSong, pauseSong, togglePlay, nextSong, prevSong, seekTo, changeVolume,
-      toggleMute, playQueue, toggleRepeat, toggleShuffle, addToQueue, removeFromQueue,
-      clearQueue, setRepeat, setShuffle, setQueue, setQueueIndex,
+      playSong,
+      pauseSong,
+      togglePlay,
+      nextSong,
+      prevSong,
+      seekTo,
+      changeVolume,
+      toggleMute,
+      playQueue,
+      toggleRepeat,
+      toggleShuffle,
+      addToQueue,
+      removeFromQueue,
+      clearQueue,
+      setRepeat,
+      setShuffle,
+      setQueue,
+      setQueueIndex,
+
+      favoriteStates,
+      userId,
+      favoritesInitialized,
+      toggleFavorite,
+      isFavorite,
+      refreshFavorites,
+      forceRefreshFavorites,
 
       refreshDuration: () => {
         const d = audioRef.current.duration;
@@ -380,6 +479,8 @@ export function PlayerProvider({ children }) {
 
 export function usePlayer() {
   const context = useContext(PlayerContext);
-  if (!context) throw new Error('usePlayer must be used within PlayerProvider');
+  if (!context) {
+    throw new Error('usePlayer must be used within a PlayerProvider');
+  }
   return context;
 }

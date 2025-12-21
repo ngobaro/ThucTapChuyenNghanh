@@ -1,13 +1,9 @@
 // FILE: demo/src/pages/PlaylistDetailPage.jsx
-// Updated: Added delete playlist button in controls. Confirm dialog, call DELETE /playlists/{id}, navigate back.
-// Only for owner (backend checks). Refresh on success.
-// Additional: Fetch and map album names properly (consistent with HomePage). Added loadAlbums and albumMap.
-// Fixed: Artist mapping now handles multiple artists via artist-song relationships (loadArtistSongs, like HomePage).
-
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Play, Shuffle, Heart, MoreVertical, Clock, User, Loader2, Trash2 } from 'lucide-react';
 import SongList from '../components/music/SongList';
+import { usePlayer } from '../context/PlayerContext'; // THÊM DÒNG NÀY
 import api from '../services/api';
 import { API_ENDPOINTS } from '../utils/constants';
 import './PlaylistDetailPage.css';
@@ -15,41 +11,44 @@ import './PlaylistDetailPage.css';
 function PlaylistDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  const {
+    currentSong,
+    queue,
+    queueIndex,
+    nextSong,
+    playSong,
+    clearQueue,
+    setQueue,
+    setQueueIndex
+  } = usePlayer(); // LẤY CÁC HÀM TỪ CONTEXT
+
   const [playlist, setPlaylist] = useState(null);
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deletingPlaylist, setDeletingPlaylist] = useState(false);
-  const [albumMap, setAlbumMap] = useState({});  // State cho albumMap
+  const [albumMap, setAlbumMap] = useState({});
 
   useEffect(() => {
     if (id) fetchPlaylistData();
   }, [id]);
 
-  // Lấy tất cả artists một lần để tránh multiple requests (consistent with HomePage)
+  // Các hàm loadArtists, loadArtistSongs, loadAlbums giữ nguyên như cũ
   const loadArtists = async () => {
     try {
       const response = await api.get(API_ENDPOINTS.ARTISTS);
-      console.log('Artists response:', response.data);
-
       const artistsMap = {};
       let artistsData = [];
-
-      if (Array.isArray(response.data)) {
-        artistsData = response.data;
-      } else if (response.data.result && Array.isArray(response.data.result)) {
-        artistsData = response.data.result;
-      } else if (response.data.data && Array.isArray(response.data.data)) {
-        artistsData = response.data.data;
-      }
+      if (Array.isArray(response.data)) artistsData = response.data;
+      else if (response.data.result && Array.isArray(response.data.result)) artistsData = response.data.result;
+      else if (response.data.data && Array.isArray(response.data.data)) artistsData = response.data.data;
 
       artistsData.forEach(artist => {
         const artistId = artist.idartist || artist.id;
         const artistName = artist.artistname || artist.name || 'Unknown Artist';
         artistsMap[artistId] = artistName;
       });
-
-      console.log('Artists map:', artistsMap);
       return artistsMap;
     } catch (err) {
       console.warn('Error loading artists:', err);
@@ -57,34 +56,22 @@ function PlaylistDetailPage() {
     }
   };
 
-  // Lấy artist-song relationships (mới, consistent with HomePage)
   const loadArtistSongs = async () => {
     try {
       const response = await api.get(API_ENDPOINTS.ARTIST_SONGS.BASE);
-      console.log('Artist songs response:', response.data);
-
       const artistSongMap = {};
       let data = [];
-
-      if (Array.isArray(response.data)) {
-        data = response.data;
-      } else if (response.data.result && Array.isArray(response.data.result)) {
-        data = response.data.result;
-      }
+      if (Array.isArray(response.data)) data = response.data;
+      else if (response.data.result && Array.isArray(response.data.result)) data = response.data.result;
 
       data.forEach(item => {
         const songId = item.idsong;
         const artistId = item.idartist;
-
         if (songId && artistId) {
-          if (!artistSongMap[songId]) {
-            artistSongMap[songId] = [];
-          }
+          if (!artistSongMap[songId]) artistSongMap[songId] = [];
           artistSongMap[songId].push(artistId);
         }
       });
-
-      console.log('Artist song map:', artistSongMap);
       return artistSongMap;
     } catch (err) {
       console.warn('Error loading artist songs:', err);
@@ -92,30 +79,20 @@ function PlaylistDetailPage() {
     }
   };
 
-  // Thêm hàm loadAlbums (tương tự HomePage)
   const loadAlbums = async () => {
     try {
       const response = await api.get(API_ENDPOINTS.ALBUMS);
-      console.log('Albums response:', response.data);
-
       const albumMapTemp = {};
       let albumsData = [];
-
-      if (Array.isArray(response.data)) {
-        albumsData = response.data;
-      } else if (response.data.result && Array.isArray(response.data.result)) {
-        albumsData = response.data.result;
-      } else if (response.data.data && Array.isArray(response.data.data)) {
-        albumsData = response.data.data;
-      }
+      if (Array.isArray(response.data)) albumsData = response.data;
+      else if (response.data.result && Array.isArray(response.data.result)) albumsData = response.data.result;
+      else if (response.data.data && Array.isArray(response.data.data)) albumsData = response.data.data;
 
       albumsData.forEach(album => {
         const albumId = album.idalbum || album.id;
         const albumName = album.albumname || album.title || 'Unknown Album';
         albumMapTemp[albumId] = albumName;
       });
-
-      console.log('Albums map:', albumMapTemp);
       return albumMapTemp;
     } catch (err) {
       console.warn('Error loading albums:', err);
@@ -128,7 +105,6 @@ function PlaylistDetailPage() {
       setLoading(true);
       setError(null);
 
-      // Load playlist songs, artists, artist-songs, albums parallel
       const [playlistRes, songsRes, artistsMap, artistSongMap, albumMapTemp] = await Promise.all([
         api.get(API_ENDPOINTS.PLAYLIST_BY_ID(id)),
         api.get(API_ENDPOINTS.PLAYLIST_SONGS(id)),
@@ -137,14 +113,11 @@ function PlaylistDetailPage() {
         loadAlbums()
       ]);
 
-      // Set albumMap vào state
       setAlbumMap(albumMapTemp);
 
-      // Playlist info (fallback result/data)
       const playlistData = playlistRes.data.result || playlistRes.data;
       if (!playlistData) throw new Error('Playlist not found');
 
-      // Fetch creator name
       let creatorName = 'Unknown User';
       if (playlistData.iduser) {
         try {
@@ -156,11 +129,9 @@ function PlaylistDetailPage() {
         }
       }
 
-      // Raw songs from playlist (fallback result/data/data)
       let rawSongs = songsRes.data.result || songsRes.data.data || songsRes.data || [];
       if (!Array.isArray(rawSongs)) rawSongs = [];
 
-      // Fetch full song details parallel (with error handling per song)
       const detailedSongsPromises = rawSongs.map(async (item) => {
         const songId = item.idsong || item.songId;
         if (!songId) return null;
@@ -170,12 +141,10 @@ function PlaylistDetailPage() {
           const song = songRes.data.result || songRes.data;
           if (!song) return null;
 
-          // Genre from song (fallback)
-          const genreId = song.idgenre || song.genreId || song.genre_id || 1; // Default Pop
+          const genreId = song.idgenre || song.genreId || song.genre_id || 1;
           const genreName = getGenreName(genreId);
           const genreColor = getGenreColor(genreId);
 
-          // SỬA ARTIST MAPPING: Handle multiple artists via artistSongMap (như HomePage)
           const artistIds = artistSongMap[songId] || [];
           const artistNames = artistIds
             .map(aId => artistsMap[aId] || 'Unknown Artist')
@@ -183,19 +152,16 @@ function PlaylistDetailPage() {
             .join(', ');
           const artistName = artistNames || song.artist || song.artistname || 'Unknown Artist';
 
-          // LẤY TÊN ALBUM: Map từ idalbum
-          const albumId = song.idalbum || song.albumId;  // Fallback nếu tên trường khác
+          const albumId = song.idalbum || song.albumId;
           const albumName = albumMapTemp[albumId] || null;
-
-          // FALLBACK: Nếu không có album, dùng `${title} (${artistName})`
           const finalAlbum = albumName || `${song.title || 'Unknown'} (${artistName})`;
 
           return {
             id: song.songId || song.id || songId,
             title: song.title || 'Unknown Title',
-            artist: artistName,  // SỬA: Multiple artists nếu có
+            artist: artistName,
             album: finalAlbum,
-            duration: song.duration, // Keep raw for parse in SongList
+            duration: song.duration,
             coverUrl: song.avatar || song.cover || song.image || '/default-cover.png',
             audioUrl: song.path || song.url || song.audio_url || '',
             views: song.views || song.listens || 0,
@@ -222,20 +188,70 @@ function PlaylistDetailPage() {
         createdDate: formatDate(playlistData.createdDate || playlistData.createdAt || new Date()),
         songCount: validSongs.length,
         duration: totalDuration,
-        color: getPlaylistColor(id) // Consistent random color based on ID
+        color: getPlaylistColor(id)
       });
 
       setSongs(validSongs);
     } catch (error) {
       console.error('Playlist fetch error:', error);
       setError('Không thể tải playlist. Vui lòng thử lại.');
-      setTimeout(() => navigate('/library'), 2000); // Auto redirect on error
+      setTimeout(() => navigate('/library'), 2000);
     } finally {
       setLoading(false);
     }
   };
 
-  // Delete playlist
+  // === HÀM XÓA BÀI HÁT MỚI: KHÔNG RELOAD, CẬP NHẬT NGAY + XỬ LÝ PLAYER ===
+  const handleRemoveSongFromPlaylist = async (songId) => {
+    try {
+      await api.delete(API_ENDPOINTS.REMOVE_SONG_FROM_PLAYLIST(id, songId));
+
+      // Cập nhật danh sách bài hát local
+      const newSongs = songs.filter(s => s.id !== songId);
+      setSongs(newSongs);
+
+      // Cập nhật playlist info
+      setPlaylist(prev => ({
+        ...prev,
+        songCount: newSongs.length,
+        duration: calculateTotalDuration(newSongs)
+      }));
+
+      // === XỬ LÝ PLAYER KHI XÓA BÀI ĐANG PHÁT HOẶC TRONG QUEUE ===
+      if (currentSong?.id === songId) {
+        // Nếu đang phát bài bị xóa
+        if (newSongs.length === 0) {
+          // Không còn bài nào → dừng phát
+          clearQueue();
+        } else {
+          // Chuyển sang bài tiếp theo trong queue mới
+          const newQueue = queue.filter(s => s.id !== songId);
+          const newIndex = queueIndex >= newQueue.length ? 0 : queueIndex;
+
+          setQueue(newQueue);
+          setQueueIndex(newIndex);
+
+          if (newQueue.length > 0) {
+            playSong(newQueue[newIndex], newQueue, newIndex);
+          }
+        }
+      } else {
+        // Chỉ xóa khỏi queue nếu bài hát nằm trong queue
+        if (queue.some(s => s.id === songId)) {
+          const newQueue = queue.filter(s => s.id !== songId);
+          const newIndex = queue.findIndex(s => s.id === currentSong?.id);
+
+          setQueue(newQueue);
+          if (newIndex >= 0) setQueueIndex(newIndex);
+        }
+      }
+
+    } catch (err) {
+      console.error('Remove song error:', err);
+      alert('Có lỗi khi xóa bài hát khỏi playlist');
+    }
+  };
+
   const handleDeletePlaylist = async () => {
     if (!confirm('Bạn có chắc muốn xóa playlist này? Hành động không thể hoàn tác!')) return;
 
@@ -250,13 +266,6 @@ function PlaylistDetailPage() {
     } finally {
       setDeletingPlaylist(false);
     }
-  };
-
-  // playQueue stub (nếu chưa có, có thể implement ở global context hoặc player service)
-  const playQueue = (songList, startIndex) => {
-    console.log('Play queue:', songList, 'starting at', startIndex);
-    // TODO: Integrate with global player: e.g., dispatch play action
-    // For now, just log
   };
 
   const getGenreName = (id) => {
@@ -275,35 +284,13 @@ function PlaylistDetailPage() {
     return colors[index];
   };
 
-  const formatDuration = (d) => {
-    if (!d) return '00:00';
-    if (typeof d === 'string' && d.includes(':')) {
-      const p = d.split(':');
-      if (p.length === 3) {
-        // Xử lý đúng định dạng HH:MM:SS -> MM:SS
-        return `${p[1].padStart(2, '0')}:${p[2].padStart(2, '0')}`;
-      }
-      if (p.length === 2) {
-        return `${p[0].padStart(2, '0')}:${p[1].padStart(2, '0')}`;
-      }
-      return d;
-    }
-    if (typeof d === 'number') {
-      const m = Math.floor(d / 60);
-      const s = d % 60;
-      return `${m}:${s.toString().padStart(2, '0')}`;
-    }
-    return '00:00';
-  };
-
-  const calculateTotalDuration = (songs) => {
+  const calculateTotalDuration = (songsList) => {
     let totalSeconds = 0;
-    songs.forEach(s => {
-      const rawDuration = s.duration;
-      if (typeof rawDuration === 'number') {
-        totalSeconds += rawDuration;
-      } else if (typeof rawDuration === 'string' && rawDuration.includes(':')) {
-        const parts = rawDuration.split(':').map(Number);
+    songsList.forEach(s => {
+      const raw = s.duration;
+      if (typeof raw === 'number') totalSeconds += raw;
+      else if (typeof raw === 'string' && raw.includes(':')) {
+        const parts = raw.split(':').map(Number);
         if (parts.length === 2) totalSeconds += parts[0] * 60 + parts[1];
         else if (parts.length === 3) totalSeconds += parts[0] * 3600 + parts[1] * 60 + parts[2];
       }
@@ -360,13 +347,8 @@ function PlaylistDetailPage() {
           className="btn-delete-playlist"
           onClick={handleDeletePlaylist}
           disabled={deletingPlaylist}
-          style={{ opacity: deletingPlaylist ? 0.5 : 1 }}
         >
-          {deletingPlaylist ? (
-            <Loader2 size={20} className="spinner" />
-          ) : (
-            <Trash2 size={20} />
-          )}
+          {deletingPlaylist ? <Loader2 size={20} className="spinner" /> : <Trash2 size={20} />}
           Xóa playlist
         </button>
       </div>
@@ -376,11 +358,14 @@ function PlaylistDetailPage() {
           <h2>Danh sách bài hát</h2>
           <span className="song-count">{songs.length} bài</span>
         </div>
+
+        {/* Truyền callback xóa bài hát */}
         <SongList
           songs={songs}
           title=""
           showGenre={true}
-          playlistId={playlist.id} // Pass playlistId for delete in SongList
+          playlistId={playlist.id}
+          onRemoveSong={handleRemoveSongFromPlaylist} // ← QUAN TRỌNG: Truyền hàm mới
         />
       </div>
     </div>
