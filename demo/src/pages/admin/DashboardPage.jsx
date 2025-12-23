@@ -1,4 +1,3 @@
-// FILE: demo/src/pages/admin/DashboardPage.jsx
 import { useState, useEffect, useMemo } from 'react';
 import {
   Plus, Edit, Trash2, Search, X,
@@ -18,8 +17,10 @@ function DashboardPage() {
   const [rawSongs, setRawSongs] = useState([]);
   const [users, setUsers] = useState([]);
   const [artists, setArtists] = useState([]);
+  const [artistSongs, setArtistSongs] = useState([]);
   const [albums, setAlbums] = useState([]);
   const [genres, setGenres] = useState([]);
+  const [songGenreMap, setSongGenreMap] = useState({});
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -38,145 +39,297 @@ function DashboardPage() {
     totalGenres: 0
   });
 
-  useEffect(() => {
-    if (activeTab === 'songs') loadSongs();
-    if (activeTab === 'users') loadUsers();
-    if (activeTab === 'artists') loadArtists();
-    if (activeTab === 'albums') loadAlbums();
-    if (activeTab === 'genres') loadGenres();
-  }, [activeTab]);
+  // Hàm normalize data từ API
+  const normalize = (res) => {
+    if (Array.isArray(res.data)) return res.data;
+    if (Array.isArray(res.data?.result)) return res.data.result;
+    if (Array.isArray(res.data?.data)) return res.data.data;
+    return [];
+  };
 
   useEffect(() => {
     loadAllData();
   }, []);
 
-  // Use useMemo to compute enriched data without causing re-renders
-  const songsWithArtists = useMemo(() => {
-    if (artists.length === 0 || rawSongs.length === 0) return rawSongs;
+  // Xây dựng các map để ánh xạ ID → Tên
+  const artistMap = useMemo(() => {
+    const map = {};
+    artists.forEach(artist => {
+      const id = artist.idartist || artist.id;
+      const name = artist.artistname || artist.name;
+      if (id && name) {
+        map[id] = name;
+      }
+    });
+    return map;
+  }, [artists]);
+
+  const artistSongMap = useMemo(() => {
+    const map = {};
+    artistSongs.forEach(rel => {
+      const songId = rel.idsong || rel.songId || rel.id_song;
+      const artistId = rel.idartist || rel.artistId || rel.id_artist;
+      
+      if (songId && artistId) {
+        if (!map[songId]) map[songId] = [];
+        map[songId].push(artistId);
+      }
+    });
+    return map;
+  }, [artistSongs]);
+
+  const albumMap = useMemo(() => {
+    const map = {};
+    albums.forEach(album => {
+      const id = album.idalbum || album.id;
+      const name = album.albumname || album.title;
+      if (id && name) {
+        map[id] = name;
+      }
+    });
+    return map;
+  }, [albums]);
+
+  const genreMap = useMemo(() => {
+    const map = {};
+    genres.forEach(genre => {
+      const id = genre.idgenre || genre.id;
+      const name = genre.genrename || genre.name;
+      if (id && name) {
+        map[id] = name;
+      }
+    });
+    return map;
+  }, [genres]);
+
+  // Xây dựng songGenreMap từ API hoặc từ dữ liệu có sẵn
+  const buildSongGenreMap = async (genresData) => {
+    const map = {};
+    
+    // Cách 1: Nếu API có endpoint GENRE_SONGS
+    if (API_ENDPOINTS.GENRE_SONGS) {
+      try {
+        const results = await Promise.allSettled(
+          genresData.map(async (genre) => {
+            const genreId = genre.idgenre || genre.id;
+            try {
+              const res = await api.get(API_ENDPOINTS.GENRE_SONGS(genreId));
+              const songsInGenre = normalize(res);
+              songsInGenre.forEach(song => {
+                const songId = song.songId || song.id;
+                if (songId && !map[songId]) {
+                  map[songId] = genre.genrename || genre.name;
+                }
+              });
+            } catch (error) {
+              console.warn(`Không thể load songs cho genre ${genreId}:`, error.message);
+            }
+          })
+        );
+      } catch (error) {
+        console.error('Error building genre map:', error);
+      }
+    }
+    
+    // Cách 2: Dùng dữ liệu từ rawSongs nếu có field idgenre
+    rawSongs.forEach(song => {
+      const songId = song.songId || song.id;
+      const genreId = song.idgenre;
+      
+      if (songId && genreId) {
+        const genre = genresData.find(g => 
+          g.idgenre == genreId || g.id == genreId
+        );
+        if (genre && !map[songId]) {
+          map[songId] = genre.genrename || genre.name;
+        }
+      }
+    });
+    
+    return map;
+  };
+
+  // Tính toán songs với thông tin đầy đủ
+  const songsWithDetails = useMemo(() => {
+    if (!rawSongs.length) return [];
+
     return rawSongs.map(song => {
-      const artist = artists.find(a =>
-        (a.idartist || a.id) === (song.idartist || song.artistId)
-      );
+      const songId = song.songId || song.id;
+      
+      // Lấy tên nghệ sĩ - ưu tiên theo thứ tự
+      let artistName = 'Unknown Artist';
+      
+      // 1. Thử từ artistSongMap (quan hệ N-N)
+      const artistIds = artistSongMap[songId];
+      if (artistIds && artistIds.length > 0) {
+        const names = artistIds
+          .map(id => artistMap[id])
+          .filter(Boolean);
+        if (names.length > 0) {
+          artistName = names.join(', ');
+        }
+      }
+      
+      // 2. Nếu không có, thử từ song.idartist trực tiếp
+      if (artistName === 'Unknown Artist' && song.idartist) {
+        const directArtist = artistMap[song.idartist];
+        if (directArtist) {
+          artistName = directArtist;
+        }
+      }
+      
+      // 3. Thử từ song.artist (có thể là string hoặc object)
+      if (artistName === 'Unknown Artist') {
+        if (typeof song.artist === 'string') {
+          artistName = song.artist;
+        } else if (song.artist && typeof song.artist === 'object') {
+          artistName = song.artist.artistname || song.artist.name || song.artist;
+        }
+      }
+      
+      // Lấy tên thể loại - ưu tiên theo thứ tự
+      let genreName = 'Unknown Genre';
+      
+      // 1. Thử từ songGenreMap
+      if (songGenreMap[songId]) {
+        genreName = songGenreMap[songId];
+      }
+      // 2. Thử từ song.idgenre
+      else if (song.idgenre && genreMap[song.idgenre]) {
+        genreName = genreMap[song.idgenre];
+      }
+      // 3. Thử từ song.genre (có thể là string hoặc object)
+      else if (song.genre) {
+        if (typeof song.genre === 'string') {
+          genreName = song.genre;
+        } else if (typeof song.genre === 'object') {
+          genreName = song.genre.genrename || song.genre.name || song.genre;
+        }
+      }
+      
+      // Lấy tên album
+      let albumName = '-';
+      if (song.idalbum && albumMap[song.idalbum]) {
+        albumName = albumMap[song.idalbum];
+      } else if (song.album) {
+        if (typeof song.album === 'string') {
+          albumName = song.album;
+        } else if (typeof song.album === 'object') {
+          albumName = song.album.albumname || song.album.title || song.album;
+        }
+      }
+      
       return {
         ...song,
-        artist: artist ? {
-          artistname: artist.artistname || artist.name,
-          idartist: artist.idartist || artist.id
-        } : null
+        artistName,
+        genreName,
+        albumName
       };
     });
-  }, [artists, rawSongs]);
+  }, [rawSongs, artistSongMap, artistMap, albumMap, genreMap, songGenreMap]);
 
-  // Use useMemo for albums too
+  // Albums với artist
   const albumsWithArtists = useMemo(() => {
-    if (artists.length === 0 || albums.length === 0) return albums;
+    if (!albums.length || !artists.length) return albums;
+    
     return albums.map(album => {
-      const artist = artists.find(a =>
-        (a.idartist || a.id) === (album.idartist || album.artistId)
-      );
+      let artistName = 'Unknown Artist';
+      const artistId = album.idartist;
+      
+      if (artistId && artistMap[artistId]) {
+        artistName = artistMap[artistId];
+      } else if (album.artist) {
+        if (typeof album.artist === 'string') {
+          artistName = album.artist;
+        } else if (typeof album.artist === 'object') {
+          artistName = album.artist.artistname || album.artist.name || album.artist;
+        }
+      }
+      
       return {
         ...album,
-        artist: artist ? {
-          name: artist.artistname || artist.name,
-          idartist: artist.idartist || artist.id
-        } : null
+        artistName
       };
     });
-  }, [artists, albums]);
+  }, [albums, artists, artistMap]);
 
   const loadAllData = async () => {
     try {
       setLoading(true);
-      await Promise.all([
-        loadSongs(),
-        loadUsers(),
-        loadArtists(),
-        loadAlbums(),
-        loadGenres()
-      ]);
+      
+      // Tạo các request
+      const requests = [
+        api.get(API_ENDPOINTS.SONGS),
+        api.get(API_ENDPOINTS.USERS),
+        api.get(API_ENDPOINTS.ARTISTS),
+        api.get(API_ENDPOINTS.ALBUMS),
+        api.get(API_ENDPOINTS.GENRES)
+      ];
+      
+      // Thêm request cho artistSongs nếu có endpoint
+      if (API_ENDPOINTS.ARTIST_SONGS) {
+        requests.push(api.get(API_ENDPOINTS.ARTIST_SONGS.BASE || API_ENDPOINTS.ARTIST_SONGS));
+      }
+      
+      const responses = await Promise.all(requests.map(p => p.catch(e => ({ error: e }))));
+      
+      // Xử lý responses
+      const [
+        songsRes, 
+        usersRes, 
+        artistsRes, 
+        albumsRes, 
+        genresRes,
+        artistSongsRes
+      ] = responses;
+      
+      // Normalize data
+      const songsData = normalize(songsRes);
+      const usersData = normalize(usersRes);
+      const artistsData = normalize(artistsRes);
+      const albumsData = normalize(albumsRes);
+      const genresData = normalize(genresRes);
+      const artistSongsData = artistSongsRes && !artistSongsRes.error ? 
+        normalize(artistSongsRes) : [];
+      
+      console.log('Data loaded:', {
+        songs: songsData.length,
+        users: usersData.length,
+        artists: artistsData.length,
+        albums: albumsData.length,
+        genres: genresData.length,
+        artistSongs: artistSongsData.length
+      });
+      
+      // Set state
+      setRawSongs(songsData);
+      setUsers(usersData);
+      setArtists(artistsData);
+      setAlbums(albumsData);
+      setGenres(genresData);
+      setArtistSongs(artistSongsData);
+      
+      // Build songGenreMap
+      const genreMapping = await buildSongGenreMap(genresData);
+      setSongGenreMap(genreMapping);
+      
+      // Update stats
+      setStats({
+        totalSongs: songsData.length,
+        totalUsers: usersData.length,
+        totalArtists: artistsData.length,
+        totalAlbums: albumsData.length,
+        totalGenres: genresData.length
+      });
+      
     } catch (error) {
       console.error('Error loading dashboard data:', error);
+      alert('Không thể tải dữ liệu: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
   };
 
-  const loadSongs = async () => {
-    try {
-      const response = await api.get(API_ENDPOINTS.SONGS);
-      let songsData = [];
-      if (Array.isArray(response.data)) songsData = response.data;
-      else if (response.data.result && Array.isArray(response.data.result)) songsData = response.data.result;
-      else if (response.data) songsData = [response.data];
-
-      setRawSongs(songsData);
-      setStats(prev => ({ ...prev, totalSongs: songsData.length }));
-    } catch (error) {
-      console.error('Error loading songs:', error);
-    }
-  };
-
-  const loadUsers = async () => {
-    try {
-      const response = await api.get(API_ENDPOINTS.USERS);
-      let usersData = [];
-      if (Array.isArray(response.data)) usersData = response.data;
-      else if (response.data.result && Array.isArray(response.data.result)) usersData = response.data.result;
-      else if (response.data) usersData = [response.data];
-
-      setUsers(usersData);
-      setStats(prev => ({ ...prev, totalUsers: usersData.length }));
-    } catch (error) {
-      console.error('Error loading users:', error);
-    }
-  };
-
-  const loadArtists = async () => {
-    try {
-      const response = await api.get(API_ENDPOINTS.ARTISTS);
-      let artistsData = [];
-      if (Array.isArray(response.data)) artistsData = response.data;
-      else if (response.data.result && Array.isArray(response.data.result)) artistsData = response.data.result;
-      else if (response.data) artistsData = [response.data];
-
-      setArtists(artistsData);
-      setStats(prev => ({ ...prev, totalArtists: artistsData.length }));
-    } catch (error) {
-      console.error('Error loading artists:', error);
-    }
-  };
-
-  const loadAlbums = async () => {
-    try {
-      const response = await api.get(API_ENDPOINTS.ALBUMS);
-      let albumsData = [];
-      if (Array.isArray(response.data)) albumsData = response.data;
-      else if (response.data.result && Array.isArray(response.data.result)) albumsData = response.data.result;
-      else if (response.data) albumsData = [response.data];
-
-      setAlbums(albumsData);
-      setStats(prev => ({ ...prev, totalAlbums: albumsData.length }));
-    } catch (error) {
-      console.error('Error loading albums:', error);
-    }
-  };
-
-  const loadGenres = async () => {
-    try {
-      const response = await api.get(API_ENDPOINTS.GENRES);
-      let genresData = [];
-      if (Array.isArray(response.data)) genresData = response.data;
-      else if (response.data.result && Array.isArray(response.data.result)) genresData = response.data.result;
-      else if (response.data) genresData = [response.data];
-
-      setGenres(genresData);
-      setStats(prev => ({ ...prev, totalGenres: genresData.length }));
-    } catch (error) {
-      console.error('Error loading genres:', error);
-    }
-  };
-
-  // Hàm đăng xuất
   const handleLogout = () => {
     if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
       localStorage.removeItem('token');
@@ -291,13 +444,13 @@ function DashboardPage() {
     switch (activeTab) {
       case 'songs':
         return {
-          title: item.title || '',
-          idartist: item.idartist || item.artist?.idartist || item.artist?.id || '',
-          idalbum: item.idalbum || '',
-          idgenre: item.idgenre || '',
+          title: item.title || item.name || '',
+          idartist: item.idartist || item.artistId || '',
+          idalbum: item.idalbum || item.albumId || '',
+          idgenre: item.idgenre || item.genreId || '',
           duration: item.duration || '',
           releasedate: item.releasedate || '',
-          views: item.views || '0',
+          views: item.views || item.listens || '0',
           avatar: item.avatar || '',
           path: item.path || '',
           lyrics: item.lyrics || ''
@@ -317,7 +470,7 @@ function DashboardPage() {
         return {
           albumname: item.albumname || item.title || '',
           releaseyear: item.releaseyear || item.year || new Date().getFullYear(),
-          idartist: item.idartist || item.artist?.id || ''
+          idartist: item.idartist || item.artistId || ''
         };
       case 'genres':
         return {
@@ -337,8 +490,6 @@ function DashboardPage() {
         if (!formData.idartist) errors.idartist = 'Nghệ sĩ không được để trống';
         if (!formData.path?.trim()) errors.path = 'Đường dẫn không được để trống';
         if (!formData.duration?.trim()) errors.duration = 'Thời lượng không được để trống';
-        if (!formData.views?.trim()) errors.views = 'Lượt xem không được để trống';
-        if (!formData.lyrics?.trim()) errors.lyrics = 'Lời bài hát không được để trống';
         break;
       case 'users':
         if (!formData.username?.trim()) errors.username = 'Username không được để trống';
@@ -377,7 +528,6 @@ function DashboardPage() {
       if (data[key] === '' || data[key] == null) delete data[key];
     });
 
-    console.log('Prepared data:', data);
     return data;
   };
 
@@ -413,7 +563,7 @@ function DashboardPage() {
     let data;
     switch (activeTab) {
       case 'songs':
-        data = songsWithArtists;
+        data = songsWithDetails;
         break;
       case 'albums':
         data = albumsWithArtists;
@@ -428,10 +578,12 @@ function DashboardPage() {
     return data.filter(item => {
       switch (activeTab) {
         case 'songs':
-          return (item.title || '').toLowerCase().includes(lower) ||
-            (item.artist?.artistname || '').toLowerCase().includes(lower);
+          return (item.title || item.name || '').toLowerCase().includes(lower) ||
+                 (item.artistName || '').toLowerCase().includes(lower) ||
+                 (item.genreName || '').toLowerCase().includes(lower);
         case 'users':
-          return (item.username || '').toLowerCase().includes(lower) || (item.email || '').toLowerCase().includes(lower);
+          return (item.username || '').toLowerCase().includes(lower) || 
+                 (item.email || '').toLowerCase().includes(lower);
         case 'artists':
           return (item.artistname || item.name || '').toLowerCase().includes(lower);
         case 'albums':
@@ -522,8 +674,7 @@ function DashboardPage() {
 
             <div className="form-group">
               <label>Lượt xem *</label>
-              <input type="text" value={formData.views || '0'} onChange={e => setFormData({ ...formData, views: e.target.value })} placeholder="VD: 0" className={formErrors.views ? 'error' : ''} />
-              {formErrors.views && <div className="error-text">{formErrors.views}</div>}
+              <input type="text" value={formData.views || '0'} onChange={e => setFormData({ ...formData, views: e.target.value })} placeholder="VD: 0" />
             </div>
 
             <div className="form-group">
@@ -538,13 +689,11 @@ function DashboardPage() {
             </div>
 
             <div className="form-group">
-              <label>Lời bài hát *</label>
-              <textarea value={formData.lyrics || ''} onChange={e => setFormData({ ...formData, lyrics: e.target.value })} placeholder="Nhập lời bài hát" rows={4} className={formErrors.lyrics ? 'error' : ''} />
-              {formErrors.lyrics && <div className="error-text">{formErrors.lyrics}</div>}
+              <label>Lời bài hát (tùy chọn)</label>
+              <textarea value={formData.lyrics || ''} onChange={e => setFormData({ ...formData, lyrics: e.target.value })} placeholder="Nhập lời bài hát" rows={4} />
             </div>
           </>
         );
-
       case 'users':
         return (
           <>
@@ -577,7 +726,6 @@ function DashboardPage() {
             </div>
           </>
         );
-
       case 'artists':
         return (
           <>
@@ -593,7 +741,6 @@ function DashboardPage() {
             </div>
           </>
         );
-
       case 'albums':
         return (
           <>
@@ -621,7 +768,6 @@ function DashboardPage() {
             </div>
           </>
         );
-
       case 'genres':
         return (
           <div className="form-group">
@@ -630,7 +776,6 @@ function DashboardPage() {
             {formErrors.genrename && <div className="error-text">{formErrors.genrename}</div>}
           </div>
         );
-
       default:
         return null;
     }
@@ -639,17 +784,23 @@ function DashboardPage() {
   const renderTableRow = (item) => {
     switch (activeTab) {
       case 'songs':
-        const genre = genres.find(g => (g.idgenre || g.id) === item.idgenre);
-        const album = albumsWithArtists.find(a => (a.idalbum || a.id) === item.idalbum);
+        const songId = item.songId || item.id || 'N/A';
+        const title = item.title || item.name || 'Không có tiêu đề';
+        const artistName = item.artistName || 'Unknown Artist';
+        const genreName = item.genreName || 'Unknown Genre';
+        const listens = item.views || item.listens || 0;
+        const duration = item.duration || '00:00';
+        const albumName = item.albumName || '-';
+
         return (
-          <tr key={item.songId || item.id}>
-            <td>{item.songId || item.id}</td>
-            <td>{item.title || 'Không có tiêu đề'}</td>
-            <td>{item.artist?.artistname || 'Unknown'}</td>
-            <td>{album ? (album.albumname || album.title) : '-'}</td>
-            <td>{genre ? (genre.genrename || genre.name) : '-'}</td>
-            <td>{item.duration || '00:00'}</td>
-            <td>{item.views || 0}</td>
+          <tr key={songId}>
+            <td>{songId}</td>
+            <td>{title}</td>
+            <td>{artistName}</td>
+            <td>{albumName}</td>
+            <td>{genreName}</td>
+            <td>{duration}</td>
+            <td>{listens}</td>
             <td className="actions-cell">
               <button className="btn-action edit" title="Sửa" onClick={() => handleEdit(item)}>
                 <Edit size={14} />
@@ -660,11 +811,12 @@ function DashboardPage() {
             </td>
           </tr>
         );
-
       case 'users':
+        const userId = item.iduser || item.id;
+        const createdAt = item.createdAt || new Date().toISOString();
         return (
-          <tr key={item.iduser || item.id}>
-            <td>{item.iduser || item.id}</td>
+          <tr key={userId}>
+            <td>{userId}</td>
             <td>{item.username || 'Unknown'}</td>
             <td>{item.email || 'No email'}</td>
             <td>
@@ -672,7 +824,7 @@ function DashboardPage() {
                 {item.role || 'USER'}
               </span>
             </td>
-            <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Unknown'}</td>
+            <td>{new Date(createdAt).toLocaleDateString()}</td>
             <td className="actions-cell">
               <button className="btn-action edit" title="Sửa" onClick={() => handleEdit(item)}>
                 <Edit size={14} />
@@ -685,11 +837,11 @@ function DashboardPage() {
             </td>
           </tr>
         );
-
       case 'artists':
+        const artistId = item.idartist || item.id;
         return (
-          <tr key={item.idartist || item.id}>
-            <td>{item.idartist || item.id}</td>
+          <tr key={artistId}>
+            <td>{artistId}</td>
             <td>{item.artistname || item.name || 'Unknown Artist'}</td>
             <td>{item.description || 'No description'}</td>
             <td className="actions-cell">
@@ -702,14 +854,16 @@ function DashboardPage() {
             </td>
           </tr>
         );
-
       case 'albums':
+        const albumId = item.idalbum || item.id;
+        const albumArtistName = item.artistName || item.artistname || item.artist || '-';
+        const albumYear = item.releaseyear || item.year || '-';
         return (
-          <tr key={item.idalbum || item.id}>
-            <td>{item.idalbum || item.id}</td>
+          <tr key={albumId}>
+            <td>{albumId}</td>
             <td>{item.albumname || item.title || 'Unknown'}</td>
-            <td>{item.artist?.name || item.artistname || '-'}</td>
-            <td>{item.releaseyear || item.year || '-'}</td>
+            <td>{albumArtistName}</td>
+            <td>{albumYear}</td>
             <td className="actions-cell">
               <button className="btn-action edit" title="Sửa" onClick={() => handleEdit(item)}>
                 <Edit size={14} />
@@ -720,11 +874,11 @@ function DashboardPage() {
             </td>
           </tr>
         );
-
       case 'genres':
+        const genreId = item.idgenre || item.id;
         return (
-          <tr key={item.idgenre || item.id}>
-            <td>{item.idgenre || item.id}</td>
+          <tr key={genreId}>
+            <td>{genreId}</td>
             <td>{item.genrename || item.name || 'Unknown'}</td>
             <td className="actions-cell">
               <button className="btn-action edit" title="Sửa" onClick={() => handleEdit(item)}>
@@ -736,7 +890,6 @@ function DashboardPage() {
             </td>
           </tr>
         );
-
       default:
         return null;
     }
@@ -888,7 +1041,8 @@ function DashboardPage() {
                   <td colSpan={getTableColumns().length} className="no-data">
                     <div className="empty-state">
                       <AlertCircle size={32} />
-                      <p>Không có dữ liệu</p>
+                      <p>{searchTerm ? 'Không tìm thấy kết quả' : 'Không có dữ liệu. Thử tải lại?'}</p>
+                      {!searchTerm && <button onClick={loadAllData}>Tải lại</button>}
                     </div>
                   </td>
                 </tr>
