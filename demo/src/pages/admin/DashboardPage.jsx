@@ -106,7 +106,7 @@ function DashboardPage() {
   const buildSongGenreMap = async (genresData) => {
     const map = {};
     
-    // Cách 1: Nếu API có endpoint GENRE_SONGS
+    // Ưu tiên dùng endpoint trung gian cho tất cả genres
     if (API_ENDPOINTS.GENRE_SONGS) {
       try {
         const results = await Promise.allSettled(
@@ -116,9 +116,9 @@ function DashboardPage() {
               const res = await api.get(API_ENDPOINTS.GENRE_SONGS(genreId));
               const songsInGenre = normalize(res);
               songsInGenre.forEach(song => {
-                const songId = song.songId || song.id;
-                if (songId && !map[songId]) {
-                  map[songId] = genre.genrename || genre.name;
+                const songId = song.songId || song.id || song.id_song;
+                if (songId) {
+                  map[songId] = genre.genrename || genre.name; // Gán genre cho song
                 }
               });
             } catch (error) {
@@ -131,16 +131,16 @@ function DashboardPage() {
       }
     }
     
-    // Cách 2: Dùng dữ liệu từ rawSongs nếu có field idgenre
+    // Fallback: Dùng song.idgenre nếu endpoint fail (từ rawSongs)
     rawSongs.forEach(song => {
       const songId = song.songId || song.id;
       const genreId = song.idgenre;
       
-      if (songId && genreId) {
+      if (songId && genreId && !map[songId]) { // Chỉ gán nếu chưa có từ trung gian
         const genre = genresData.find(g => 
           g.idgenre == genreId || g.id == genreId
         );
-        if (genre && !map[songId]) {
+        if (genre) {
           map[songId] = genre.genrename || genre.name;
         }
       }
@@ -376,6 +376,18 @@ function DashboardPage() {
     }
   };
 
+  // Helper để lấy current artist ids cho song từ API
+  const getCurrentArtistIdsForSong = async (songId) => {
+    try {
+      const res = await api.get(`/artistsongs/song/${songId}`);
+      const relations = normalize(res);
+      return relations.map(rel => rel.idartist || rel.artistId);
+    } catch (error) {
+      console.warn('Không lấy được current artists:', error);
+      return [];
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormErrors({});
@@ -388,22 +400,96 @@ function DashboardPage() {
 
     setSaving(true);
     try {
+      let songId = selectedItem ? getItemId(selectedItem) : null; // ID song nếu edit
+
       if (showCreateModal) {
+        // Tạo song trước (không có idartist, idgenre)
         const endpoint = getEndpoint('create');
         const data = prepareFormData();
-        await api.post(endpoint, data);
+        const createRes = await api.post(endpoint, data);
+        
+        // Lấy songId từ response (giả sử API trả về song với id)
+        songId = createRes.data?.id || createRes.data?.songId || createRes.data?.result?.id || createRes.data?.result?.songId;
+        
+        // Nếu có idartist, thêm vào trung gian artistsongs
+        const artistId = formData.idartist;
+        if (artistId && songId) {
+          await api.post('/artistsongs', { idartist: Number(artistId), idsong: songId });
+          console.log(`Added song ${songId} to artist ${artistId}`);
+        }
+        
+        // Nếu có idgenre, thêm vào trung gian
+        const genreId = formData.idgenre;
+        if (genreId && songId) {
+          await api.post(`/genres/${genreId}/songs/${songId}`);
+          console.log(`Added song ${songId} to genre ${genreId}`);
+        }
+        
         alert('Tạo mới thành công!');
         setShowCreateModal(false);
       } else if (showEditModal) {
+        // Update song trước (không có idartist, idgenre)
         const endpoint = getEndpoint('update');
         const data = prepareFormData();
         await api.put(endpoint, data);
+        
+        // Xử lý artist nếu thay đổi (giả sử chỉ 1 artist)
+        const newArtistId = formData.idartist;
+        const currentArtistIds = await getCurrentArtistIdsForSong(songId);
+        const oldArtistId = currentArtistIds.length > 0 ? currentArtistIds[0] : null; // Giả sử single artist
+        
+        if (newArtistId && newArtistId !== oldArtistId && songId) {
+          // Xóa relation cũ nếu có
+          if (oldArtistId) {
+            const oldRelations = await api.get(`/artistsongs/song/${songId}`);
+            const oldRelation = normalize(oldRelations).find(r => (r.idartist || r.artistId) === oldArtistId);
+            if (oldRelation) {
+              await api.delete(`/artistsongs/${oldRelation.id}`);
+              console.log(`Removed song ${songId} từ artist cũ ${oldArtistId}`);
+            }
+          }
+          // Thêm artist mới
+          await api.post('/artistsongs', { idartist: Number(newArtistId), idsong: songId });
+          console.log(`Updated song ${songId} to artist ${newArtistId}`);
+        } else if (!newArtistId && oldArtistId && songId) {
+          // Xóa relation nếu bỏ chọn
+          const relationsRes = await api.get(`/artistsongs/song/${songId}`);
+          const relations = normalize(relationsRes);
+          for (const rel of relations) {
+            await api.delete(`/artistsongs/${rel.id}`);
+          }
+          console.log(`Removed song ${songId} từ artist ${oldArtistId}`);
+        }
+        
+        // Xử lý genre nếu thay đổi (giả sử chỉ 1 genre)
+        const newGenreId = formData.idgenre;
+        const oldGenreId = selectedItem.idgenre; // Lấy từ item cũ (nếu có)
+        
+        if (newGenreId && newGenreId !== oldGenreId && songId) {
+          // Xóa genre cũ nếu có
+          if (oldGenreId) {
+            try {
+              await api.delete(`/genres/${oldGenreId}/songs/${songId}`);
+              console.log(`Removed song ${songId} từ genre cũ ${oldGenreId}`);
+            } catch (err) {
+              console.warn('Không xóa được genre cũ:', err.message); // Có thể không tồn tại
+            }
+          }
+          // Thêm genre mới
+          await api.post(`/genres/${newGenreId}/songs/${songId}`);
+          console.log(`Updated song ${songId} to genre ${newGenreId}`);
+        } else if (!newGenreId && oldGenreId && songId) {
+          // Xóa genre nếu bỏ chọn
+          await api.delete(`/genres/${oldGenreId}/songs/${songId}`);
+          console.log(`Removed song ${songId} từ genre ${oldGenreId}`);
+        }
+        
         alert('Cập nhật thành công!');
         setShowEditModal(false);
         setSelectedItem(null);
       }
 
-      loadAllData();
+      loadAllData(); // Reload để cập nhật map
     } catch (error) {
       console.error('Error saving:', error);
       alert('Lưu thất bại: ' + (error.response?.data?.message || error.message));
@@ -420,7 +506,7 @@ function DashboardPage() {
           idartist: '',
           idalbum: '',
           idgenre: '',
-          duration: '',
+          duration: '00:00', // SỬA: Set default value cho time picker
           releasedate: new Date().toISOString().split('T')[0],
           views: '0',
           avatar: '',
@@ -443,12 +529,16 @@ function DashboardPage() {
   const getFormDataFromItem = (item) => {
     switch (activeTab) {
       case 'songs':
+        let duration = item.duration || '';
+        // SỬA: Format duration cho time input (HH:MM nếu là MM:SS, coi MM là HH)
+        if (duration && !duration.includes(':')) duration = `00:${duration}`;
+        if (duration && duration.split(':').length === 2) duration += ':00';
         return {
           title: item.title || item.name || '',
-          idartist: item.idartist || item.artistId || '',
+          idartist: item.idartist || '', // SỬA: Giữ để load artist cũ (từ API song hoặc fallback)
           idalbum: item.idalbum || item.albumId || '',
-          idgenre: item.idgenre || item.genreId || '',
-          duration: item.duration || '',
+          idgenre: item.idgenre || '', // Giữ để load genre cũ (dù là từ trung gian, giả sử API song trả về)
+          duration: duration,
           releasedate: item.releasedate || '',
           views: item.views || item.listens || '0',
           avatar: item.avatar || '',
@@ -489,7 +579,7 @@ function DashboardPage() {
         if (!formData.title?.trim()) errors.title = 'Tiêu đề không được để trống';
         if (!formData.idartist) errors.idartist = 'Nghệ sĩ không được để trống';
         if (!formData.path?.trim()) errors.path = 'Đường dẫn không được để trống';
-        if (!formData.duration?.trim()) errors.duration = 'Thời lượng không được để trống';
+        if (!formData.duration) errors.duration = 'Thời lượng không được để trống'; // SỬA: Validate duration không rỗng
         break;
       case 'users':
         if (!formData.username?.trim()) errors.username = 'Username không được để trống';
@@ -513,14 +603,21 @@ function DashboardPage() {
   const prepareFormData = () => {
     const data = { ...formData };
 
+    // Bỏ idartist và idgenre khỏi data song (xử lý trung gian riêng)
+    delete data.idartist;
+    delete data.idgenre;
+
     if (data.idalbum && data.idalbum !== '') data.idalbum = Number(data.idalbum);
-    if (data.idgenre && data.idgenre !== '') data.idgenre = Number(data.idgenre);
     if (data.releaseyear) data.releaseyear = Number(data.releaseyear);
 
+    // SỬA: Với type="time", duration đã là HH:MM:SS, nhưng nếu cần adjust cho backend (MM:SS)
     if (data.duration) {
-      let dur = data.duration.trim();
-      if (!dur.includes(':')) dur = '00:' + dur;
-      if (dur.split(':').length === 2) dur += ':00';
+      let dur = data.duration; // Đã format từ time picker
+      // Nếu backend mong MM:SS, extract MM:SS từ HH:MM:SS (ignore HH nếu là 00)
+      const parts = dur.split(':');
+      if (parts.length === 3 && parts[0] === '00') {
+        dur = `${parts[1].padStart(2, '0')}:${parts[2]}`;
+      }
       data.duration = dur;
     }
 
@@ -663,7 +760,14 @@ function DashboardPage() {
 
             <div className="form-group">
               <label>Thời lượng *</label>
-              <input type="text" value={formData.duration || ''} onChange={e => setFormData({ ...formData, duration: e.target.value })} placeholder="VD: 04:12" className={formErrors.duration ? 'error' : ''} />
+              {/* SỬA: Đổi thành input type="time" để dùng time picker built-in */}
+              <input 
+                type="time" 
+                value={formData.duration || '00:00'} 
+                onChange={e => setFormData({ ...formData, duration: e.target.value })} 
+                step="1" // Cho phép chọn giây
+                className={formErrors.duration ? 'error' : ''} 
+              />
               {formErrors.duration && <div className="error-text">{formErrors.duration}</div>}
             </div>
 
