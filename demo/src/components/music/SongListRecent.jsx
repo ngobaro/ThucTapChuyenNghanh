@@ -114,7 +114,7 @@ function SongListRecent({ songs, title }) {
   // Load playlists (copy from SongList)
   const loadUserPlaylists = useCallback(async () => {
     if (!userId) return;
-    
+
     setLoadingPlaylists(true);
     try {
       const res = await api.get(API_ENDPOINTS.PLAYLISTS); // Backend filter theo token
@@ -139,7 +139,7 @@ function SongListRecent({ songs, title }) {
   // Mở modal playlist (copy from SongList)
   const openPlaylistModal = async (songId, e) => {
     e.stopPropagation();
-    
+
     if (!userId) {
       alert('Vui lòng đăng nhập để thêm vào playlist!');
       return;
@@ -168,7 +168,7 @@ function SongListRecent({ songs, title }) {
   // Thêm vào playlist
   const handleAddToPlaylist = async (playlistId) => {
     if (!currentSongId) return;
-    
+
     try {
       await api.post(API_ENDPOINTS.ADD_SONG_TO_PLAYLIST(playlistId, currentSongId));
       alert('Đã thêm bài hát vào playlist!');
@@ -199,14 +199,14 @@ function SongListRecent({ songs, title }) {
         nameplaylist: trimmedName,
         description: ''
       });
-      
+
       const newPlaylist = createRes.data?.result || createRes.data;
       if (newPlaylist?.id || newPlaylist?.idplaylist) {
         await loadUserPlaylists();
         setShowCreateForm(false);
         setNewPlaylistName('');
         setModalError('');
-        
+
         await handleAddToPlaylist(newPlaylist.id || newPlaylist.idplaylist);
       }
     } catch (err) {
@@ -329,7 +329,7 @@ function SongListRecent({ songs, title }) {
   // Helper màu
   const getPlaylistColor = (id) => {
     const colors = [
-      '#1DB954', '#FF6B6B', '#4ECDC4', '#FF9F1C', 
+      '#1DB954', '#FF6B6B', '#4ECDC4', '#FF9F1C',
       '#9D4EDD', '#06D6A0', '#118AB2', '#FFD166'
     ];
     const index = id ? parseInt(id.toString().slice(-1)) % colors.length : 0;
@@ -387,7 +387,7 @@ function SongListRecent({ songs, title }) {
             duration > 0
               ? duration
               : parseDuration(song.duration);
-          
+
           return (
             <div
               key={songId}
@@ -437,7 +437,7 @@ function SongListRecent({ songs, title }) {
                   )}
                 </button>
                 {/* Nút 3 chấm - thêm onClick để mở modal playlist */}
-                <button 
+                <button
                   className="btn-action"
                   onClick={(e) => openPlaylistModal(songId, e)}
                   disabled={!userId}

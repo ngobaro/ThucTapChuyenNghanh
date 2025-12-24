@@ -205,7 +205,7 @@ function PlaylistDetailPage() {
   const handleRemoveSongFromPlaylist = async (songId) => {
     try {
       await api.delete(API_ENDPOINTS.REMOVE_SONG_FROM_PLAYLIST(id, songId));
-
+      window.dispatchEvent(new Event('playlist-updated'));
       // Cập nhật danh sách bài hát local
       const newSongs = songs.filter(s => s.id !== songId);
       setSongs(newSongs);

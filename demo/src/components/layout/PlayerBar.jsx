@@ -75,10 +75,16 @@ function PlayerBar() {
   }, [userId]);
 
   useEffect(() => {
-    if (userId) {
-      loadUserPlaylists();
-    }
-  }, [userId, loadUserPlaylists]);
+    const handlePlaylistUpdated = () => {
+      loadUserPlaylists(); // reload lại playlists + songCount
+    };
+
+    window.addEventListener('playlist-updated', handlePlaylistUpdated);
+
+    return () => {
+      window.removeEventListener('playlist-updated', handlePlaylistUpdated);
+    };
+  }, [loadUserPlaylists]);
 
   const openPlaylistModal = useCallback((e) => {
     e.stopPropagation();
@@ -183,7 +189,7 @@ function PlayerBar() {
             </button>
           </div>
           <div className="modal-content">
-                       <div className="create-playlist-section">
+            <div className="create-playlist-section">
               <button
                 className={`btn-create-playlist ${showCreateForm ? 'active' : ''}`}
                 onClick={() => {
