@@ -41,9 +41,6 @@ function FormModal({
                         />
                     </div>
                     <div className="modal-footer">
-                        <button type="button" className="btn-cancel" onClick={onClose}>
-                            Hủy
-                        </button>
                         <button type="submit" className="btn-save" disabled={saving}>
                             {saving ? (
                                 <>

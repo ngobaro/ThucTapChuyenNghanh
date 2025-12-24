@@ -112,7 +112,7 @@ function RankPage() {
         return dateB - dateA;
       });
 
-      setTrendingSongs(sortedByViews.slice(0, 8));
+      setTrendingSongs(sortedByViews.slice(0, 12));
       setNewReleases(sortedByDate.slice(0, 6));
 
     } catch (error) {
