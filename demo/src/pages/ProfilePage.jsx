@@ -11,7 +11,7 @@ function ProfilePage() {
   const [mySongs, setMySongs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   const navigate = useNavigate(); // 2. Khởi tạo navigate
 
   const fetchProfileData = useCallback(async () => {
@@ -93,9 +93,9 @@ function ProfilePage() {
       {/* Header Profile */}
       <header className="profile-header">
         <div className="avatar-container">
-          <img 
-            src={user?.avatar || 'https://via.placeholder.com/150'} 
-            alt="Avatar" 
+          <img
+            src={user?.avatar || 'https://as2.ftcdn.net/v2/jpg/03/31/69/91/1000_F_331699188_lRpvqxO5QRtwOM05gR50ImaaJgBx68vi.jpg'}
+            alt="Avatar"
             className="profile-avatar"
             onError={(e) => e.target.src = 'https://via.placeholder.com/150'}
           />
@@ -137,8 +137,8 @@ function ProfilePage() {
               <li>✓ Nghe nhạc cùng bạn bè</li>
             </ul>
             {/* 4. Gán hàm vào sự kiện onClick */}
-            <button 
-              className="btn-plan active" 
+            <button
+              className="btn-plan active"
               onClick={handleUpgradeClick}
             >
               Nâng cấp ngay - 79k
