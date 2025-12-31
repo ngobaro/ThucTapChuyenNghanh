@@ -4,9 +4,9 @@
 
 import { useState, useEffect } from 'react';
 import { Clock, Loader2, Shuffle } from 'lucide-react';
-import api from '../services/api';
-import { API_ENDPOINTS } from '../utils/constants';
-import SongCard from '../components/music/SongCard'; // Assume SongCard from HomePage/others for grid display
+import api from '../../services/api';
+import { API_ENDPOINTS } from '../../utils/constants';
+import SongCard from '../../components/music/SongCard'; // Assume SongCard from HomePage/others for grid display
 import './OftenListenedPage.css'; // New CSS file (provided below)
 
 function OftenListenedPage() {

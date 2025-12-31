@@ -1,10 +1,10 @@
 // FILE: demo/src/pages/FavoritesPage.jsx
 import { useState, useEffect } from 'react';
 import { Heart, Loader2 } from 'lucide-react';
-import api from '../services/api';
-import { API_ENDPOINTS } from '../utils/constants';
-import { usePlayer } from '../context/PlayerContext'; // THÊM DÒNG NÀY
-import SongCard from '../components/music/SongCard';
+import api from '../../services/api';
+import { API_ENDPOINTS } from '../../utils/constants';
+import { usePlayer } from '../../context/PlayerContext'; // THÊM DÒNG NÀY
+import SongCard from '../../components/music/SongCard';
 import './FavoritesPage.css';
 
 function FavoritesPage() {

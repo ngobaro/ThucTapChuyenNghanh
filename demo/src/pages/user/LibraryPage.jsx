@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ListMusic, Heart, Plus, X, Loader2, Shuffle } from 'lucide-react';
-import api from '../services/api';
-import { API_ENDPOINTS } from '../utils/constants';
-import SongCard from '../components/music/SongCard'; // Import SongCard để hiển thị often songs
+import api from '../../services/api';
+import { API_ENDPOINTS } from '../../utils/constants';
+import SongCard from '../../components/music/SongCard'; // Import SongCard để hiển thị often songs
 import './LibraryPage.css';
 
 function LibraryPage() {

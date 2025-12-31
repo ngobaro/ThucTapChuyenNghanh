@@ -2,9 +2,9 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Play, Shuffle, Heart, MoreVertical, Clock, User } from 'lucide-react';
-import SongList from '../components/music/SongList';
-import api from '../services/api';
-import { API_ENDPOINTS } from '../utils/constants';
+import SongList from '../../components/music/SongList';
+import api from '../../services/api';
+import { API_ENDPOINTS } from '../../utils/constants';
 import './AlbumDetailPage.css';
 
 function AlbumDetailPage() {

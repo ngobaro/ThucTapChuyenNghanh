@@ -1,8 +1,8 @@
 // FILE: demo/src/pages/GenresPage.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
-import { API_ENDPOINTS } from '../utils/constants';
+import api from '../../services/api';
+import { API_ENDPOINTS } from '../../utils/constants';
 import './GenresPage.css';
 
 function GenresPage() {

@@ -1,8 +1,8 @@
 // FILE: demo/src/pages/AlbumsPage.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
-import { API_ENDPOINTS } from '../utils/constants';
+import api from '../../services/api';
+import { API_ENDPOINTS } from '../../utils/constants';
 import { Play } from 'lucide-react';
 import './AlbumsPage.css';
 

@@ -5,9 +5,9 @@
 
 import { useState, useEffect } from 'react';
 import { Clock, Loader2 } from 'lucide-react';
-import api from '../services/api';
-import { API_ENDPOINTS } from '../utils/constants';
-import SongListRecent from '../components/music/SongListRecent'; // Import SongListRecent for list view
+import api from '../../services/api';
+import { API_ENDPOINTS } from '../../utils/constants';
+import SongListRecent from '../../components/music/SongListRecent'; // Import SongListRecent for list view
 import './RecentPage.css';
 
 function RecentPage() {

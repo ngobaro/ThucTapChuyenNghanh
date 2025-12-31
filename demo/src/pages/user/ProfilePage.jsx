@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
-import api from '../services/api';
-import { getMySongs } from '../services/songService';
-import { API_ENDPOINTS } from '../utils/constants';
-import SongCard from '../components/music/SongCard';
+import api from '../../services/api';
+import { getMySongs } from '../../services/songService';
+import { API_ENDPOINTS } from '../../utils/constants';
+import SongCard from '../../components/music/SongCard';
 import './ProfilePage.css';
 
 function ProfilePage() {

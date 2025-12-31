@@ -3,8 +3,8 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { register } from '../services/authService';
-import { ROUTES } from '../utils/constants';
+import { register } from '../../services/authService';
+import { ROUTES } from '../../utils/constants';
 import './AuthPages.css';
 
 function RegisterPage() {

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api from '../../services/api';
 // Kiểm tra xem file này có tồn tại không, nếu không hãy tạm comment dòng dưới
-import { API_ENDPOINTS } from '../utils/constants';
+import { API_ENDPOINTS } from '../../utils/constants';
 import './CheckoutPage.css';
 
 const CheckoutPage = () => {

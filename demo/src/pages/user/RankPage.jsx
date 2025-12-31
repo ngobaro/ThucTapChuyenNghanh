@@ -1,9 +1,9 @@
 // FILE: demo/src/pages/RankPage.jsx
 import { useState, useEffect } from 'react';
-import SongCard from '../components/music/SongCard';
-import { getAllSongs } from '../services/songService';
-import api from '../services/api';
-import { API_ENDPOINTS } from '../utils/constants';
+import SongCard from '../../components/music/SongCard';
+import { getAllSongs } from '../../services/songService';
+import api from '../../services/api';
+import { API_ENDPOINTS } from '../../utils/constants';
 import './RankPage.css';
 
 function RankPage() {

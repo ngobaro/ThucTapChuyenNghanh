@@ -1,9 +1,9 @@
 // FILE: demo/src/pages/GenrePage.jsx
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import SongList from '../components/music/SongList';
-import api from '../services/api';
-import { API_ENDPOINTS } from '../utils/constants';
+import SongList from '../../components/music/SongList';
+import api from '../../services/api';
+import { API_ENDPOINTS } from '../../utils/constants';
 import { Shuffle } from 'lucide-react';
 import './GenrePage.css';
 

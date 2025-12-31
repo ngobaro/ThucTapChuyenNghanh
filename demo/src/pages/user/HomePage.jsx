@@ -1,10 +1,10 @@
 // FILE: demo/src/pages/HomePage.jsx
 import { useEffect, useState } from 'react';
-import SongCard from '../components/music/SongCard';
-import SongList from '../components/music/SongList';
-import { getAllSongs } from '../services/songService';
-import api from '../services/api';
-import { API_ENDPOINTS } from '../utils/constants';
+import SongCard from '../../components/music/SongCard';
+import SongList from '../../components/music/SongList';
+import { getAllSongs } from '../../services/songService';
+import api from '../../services/api';
+import { API_ENDPOINTS } from '../../utils/constants';
 import './HomePage.css';
 
 function HomePage() {
