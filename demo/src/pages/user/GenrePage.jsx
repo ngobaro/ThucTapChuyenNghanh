@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import SongList from '../../components/music/SongList';
 import api from '../../services/api';
 import { API_ENDPOINTS } from '../../utils/constants';
-import { Shuffle } from 'lucide-react';
 import './GenrePage.css';
 
 function GenrePage() {
@@ -20,7 +19,6 @@ function GenrePage() {
     }
   }, [id]);
 
-  // Lấy tất cả artists một lần để tránh multiple requests
   const loadArtists = async () => {
     try {
       const response = await api.get(API_ENDPOINTS.ARTISTS);

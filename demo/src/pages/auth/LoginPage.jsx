@@ -37,7 +37,7 @@ function LoginPage() {
   return (
     <div className="auth-page">
       <div className="auth-container">
-        <h1>🎵 Music Web</h1>
+        <h1>Spoti-five</h1>
         <h2>Đăng nhập</h2>
         
         {error && <div className="error-message">{error}</div>}

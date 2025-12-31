@@ -1,208 +1,249 @@
 /* FILE: src/pages/AuthPages.css */
+/* CUSTOM AUTH PAGES - SIMPLE & CLEAN */
 
-/* Reset và base styles */
-.auth-page * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* ================ BASE RESET ================ */
+body .auth-page {
+  all: initial;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  box-sizing: border-box !important;
 }
 
-.auth-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  padding: 1rem;
+body .auth-page *,
+body .auth-page *::before,
+body .auth-page *::after {
+  box-sizing: border-box !important;
+  font-family: inherit !important;
 }
 
-.auth-container {
-  background: white;
-  padding: 2.5rem;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  width: 100%;
-  max-width: 420px;
-  text-align: center;
+/* ================ PAGE CONTAINER ================ */
+body .auth-page {
+  min-height: 100vh !important;
+  background: #000000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+  margin: 0 !important;
 }
 
-/* Tiêu đề */
-.auth-container h1 {
-  font-size: 2.5rem;
-  color: #333;
-  margin-bottom: 0.5rem;
-  font-weight: 800;
+/* ================ AUTH BOX ================ */
+body .auth-container {
+  width: 100% !important;
+  max-width: 380px !important;
+  background: #121212 !important;
+  border-radius: 12px !important;
+  padding: 32px !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid #e0e0e0 !important;
 }
 
-.auth-container h2 {
-  font-size: 1.8rem;
-  color: #555;
-  margin-bottom: 2rem;
-  font-weight: 600;
+/* ================ HEADINGS ================ */
+body .auth-container h1 {
+  text-align: center !important;
+  font-size: 28px !important;
+  font-weight: 600 !important;
+  color: #1DB954 !important;
+  margin-bottom: 6px !important;
+  padding: 0 !important;
 }
 
-/* Form styles */
-.form-group {
-  margin-bottom: 1.5rem;
-  text-align: left;
+body .auth-container h2 {
+  text-align: center !important;
+  font-size: 20px !important;
+  font-weight: 500 !important;
+  color: #ffffff !important;
+  margin-bottom: 28px !important;
+  padding: 0 !important;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #555;
-  font-weight: 500;
-  font-size: 0.95rem;
+/* ================ FORM STYLES ================ */
+body .auth-container form {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+  margin-bottom: 24px !important;
 }
 
-.form-group input {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 10px;
-  color: #28a745;
-  font-size: 1rem;
-  transition: all 0.3s;
-  background: #f8f9fa;
+body .form-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  width: 100% !important;
 }
 
-.form-group input:focus {
-  outline: none;
-  border-color: #667eea;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+body .form-group label {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #ffffff !important;
+  display: block !important;
+  margin-bottom: 2px !important;
 }
 
-.form-group input::placeholder {
-  color: #999;
+body .form-group input {
+  width: 100% !important;
+  padding: 10px 14px !important;
+  border: 1px solid #cccccc !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  color: #333333 !important;
+  background: #ffffff !important;
+  outline: none !important;
+  transition: border-color 0.2s !important;
 }
 
-.form-group input:disabled {
-  background: #e9ecef;
-  cursor: not-allowed;
+body .form-group input::placeholder {
+  color: #999999 !important;
 }
 
-/* Error message */
-.error-message {
-  background: #fee;
-  color: #e74c3c;
-  padding: 0.875rem 1rem;
-  border-radius: 10px;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
-  border-left: 4px solid #e74c3c;
-  text-align: left;
+body .form-group input:hover {
+  border-color: #888888 !important;
 }
 
-/* Button */
-button[type="submit"],
-.btn-submit {
-  width: 100%;
-  padding: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-  margin-top: 0.5rem;
+body .form-group input:focus {
+  border-color: #1DB954 !important;
+  box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.1) !important;
 }
 
-button[type="submit"]:hover,
-.btn-submit:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+body .form-group input:disabled {
+  background: #f0f0f0 !important;
+  color: #888888 !important;
+  cursor: not-allowed !important;
 }
 
-button[type="submit"]:disabled,
-.btn-submit:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
+/* ================ BUTTON - ONLY COLORED ELEMENT ================ */
+body .auth-container button[type="submit"],
+body .auth-container .btn-submit {
+  width: 100% !important;
+  padding: 12px !important;
+  background: #1DB954 !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 6px !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  margin-top: 10px !important;
+  transition: background 0.2s, transform 0.1s !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
 }
 
-/* Link */
-.auth-link {
-  margin-top: 2rem;
-  color: #666;
-  font-size: 0.95rem;
+body .auth-container button[type="submit"]:hover,
+body .auth-container .btn-submit:hover {
+  background: #1aa34a !important;
 }
 
-.auth-link a {
-  color: #667eea;
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.3s;
+body .auth-container button[type="submit"]:active,
+body .auth-container .btn-submit:active {
+  transform: translateY(1px) !important;
 }
 
-.auth-link a:hover {
-  color: #5a67d8;
-  text-decoration: underline;
+body .auth-container button[type="submit"]:disabled,
+body .auth-container .btn-submit:disabled {
+  background: #a0dbb5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
 }
 
-/* Responsive */
-@media (max-width: 480px) {
-  .auth-container {
-    padding: 2rem 1.5rem;
-  }
-
-  .auth-container h1 {
-    font-size: 2rem;
-  }
-
-  .auth-container h2 {
-    font-size: 1.5rem;
-  }
+/* ================ ERROR MESSAGE ================ */
+body .error-message {
+  background: #fff5f5 !important;
+  border: 1px solid #ffcccc !important;
+  color: #cc0000 !important;
+  padding: 10px 14px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  margin-bottom: 18px !important;
+  text-align: center !important;
 }
 
-/* Animation */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* ================ LINK ================ */
+body .auth-link {
+  text-align: center !important;
+  font-size: 14px !important;
+  color: #ffffff !important;
+  margin-top: 20px !important;
+  padding-top: 20px !important;
+  border-top: 1px solid #eeeeee !important;
 }
 
-.auth-container {
-  animation: fadeIn 0.5s ease-out;
+body .auth-link a {
+  color: #1DB954 !important;
+  text-decoration: none !important;
+  font-weight: 500 !important;
+  margin-left: 4px !important;
 }
 
-/* Thêm style cho loading state */
-.loading-spinner {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: white;
-  animation: spin 1s ease-in-out infinite;
-  margin-right: 8px;
-  vertical-align: middle;
+body .auth-link a:hover {
+  text-decoration: underline !important;
+}
+
+/* ================ LOADING SPINNER ================ */
+body .auth-container button[type="submit"]:disabled::before,
+body .auth-container .btn-submit:disabled::before {
+  content: '' !important;
+  width: 16px !important;
+  height: 16px !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  border-top: 2px solid #ffffff !important;
+  border-radius: 50% !important;
+  animation: spin 0.8s linear infinite !important;
+  display: inline-block !important;
+  margin-right: 8px !important;
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
+  0% { transform: rotate(0deg) !important; }
+  100% { transform: rotate(360deg) !important; }
+}
+
+/* ================ RESPONSIVE ================ */
+@media (max-width: 480px) {
+  body .auth-page {
+    padding: 12px !important;
+  }
+  
+  body .auth-container {
+    padding: 24px !important;
+    max-width: 100% !important;
+    border-radius: 10px !important;
+  }
+  
+  body .auth-container h1 {
+    font-size: 24px !important;
+  }
+  
+  body .auth-container h2 {
+    font-size: 18px !important;
+    margin-bottom: 24px !important;
+  }
+  
+  body .auth-container form {
+    gap: 16px !important;
+  }
+  
+  body .form-group input {
+    padding: 9px 12px !important;
+    font-size: 13px !important;
+  }
+  
+  body .auth-container button[type="submit"],
+  body .auth-container .btn-submit {
+    padding: 11px !important;
+    font-size: 14px !important;
   }
 }
 
-/* Success/Error states */
-.success-message {
-  background: #d4edda;
-  color: #155724;
-  padding: 0.875rem 1rem;
-  border-radius: 10px;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
-  border-left: 4px solid #28a745;
-  text-align: left;
+/* ================ FOCUS FOR ACCESSIBILITY ================ */
+body .form-group input:focus-visible {
+  outline: 2px solid #1DB954 !important;
+  outline-offset: 1px !important;
+}
+
+body .auth-link a:focus-visible {
+  outline: 2px solid #1DB954 !important;
+  outline-offset: 2px !important;
+  border-radius: 2px !important;
 }
