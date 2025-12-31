@@ -25,7 +25,7 @@ export function PlayerProvider({ children }) {
   const [userId, setUserId] = useState(null);
   const [favoritesInitialized, setFavoritesInitialized] = useState(false);
 
-  // SỬA: THÊM state throttle ở đây (top-level, trước functions)
+  // THÊM: State throttle ở đây (top-level, trước functions)
   const [lastListenIncrement, setLastListenIncrement] = useState(null);  // Timestamp cuối +1
 
   // ==================== FETCH USER ID ====================
@@ -134,16 +134,16 @@ export function PlayerProvider({ children }) {
       loadFavorites();
     }
   }, [userId, loadFavorites]);
-
-  // SỬA: Reorder - Định nghĩa incrementListenCount TRƯỚC saveListenHistory
-  // THÊM: Hàm riêng incrementListenCount (PUT +1 views/listen count)
+  
+  // ==================== LISTEN COUNT INCREMENT ====================
+  // FIX: Loại bỏ setSongs, thay bằng update queue/currentSong nếu backend trả SongResponse
+  // Nếu backend chưa sửa (trả String), phần update sẽ skip (vì views undefined)
   const incrementListenCount = useCallback(async (songId) => {
-    if (!songId || lastSavedSongId === songId) return;  // Skip nếu vừa save history (tránh double call)
+    if (!songId || lastSavedSongId === songId) return;
 
     const accessToken = localStorage.getItem('token');
-    if (!accessToken) return;  // Chỉ logged in mới +1
+    if (!accessToken) return;
 
-    // Throttle: Chỉ +1 mỗi 30s cho cùng song (tránh spam)
     const now = Date.now();
     if (lastListenIncrement && now - lastListenIncrement < 30000) {
       console.log('Throttle: Skip increment for song', songId);
@@ -152,19 +152,37 @@ export function PlayerProvider({ children }) {
     setLastListenIncrement(now);
 
     try {
-      // Dùng api.put (nếu api.js có interceptor token); fallback fetch nếu cần
       const response = await api.put(`/songs/${songId}/listen`);
-      console.log('Listen count (views) incremented for song:', songId, response.data);
+      console.log('Listen count incremented for song:', songId, response.data);
+
+      // FIX: Update local state nếu backend trả SongResponse (có views mới)
+      if (response.data && typeof response.data.views === 'number') {
+        // Update currentSong nếu đang chơi song này
+        if (currentSong && currentSong.songId === songId) {
+          setCurrentSong(prev => ({ ...prev, views: response.data.views }));
+        }
+        // Update queue (array songs đang queue)
+        setQueue(prevQueue => 
+          prevQueue.map(song => 
+            song.songId === songId 
+              ? { ...song, views: response.data.views }
+              : song
+          )
+        );
+        console.log('Updated queue/currentSong views to:', response.data.views);
+      } else {
+        // Fallback: Backend trả message chỉ, không update real-time (refresh page để thấy)
+        console.log('Backend response is message only - no real-time update');
+      }
     } catch (err) {
       console.error('Lỗi cập nhật lượt nghe:', err);
       if (err.response?.status === 401) {
         localStorage.clear();
         window.location.href = '/login';
       }
-      // Reset throttle nếu error
       setLastListenIncrement(null);
     }
-  }, [lastSavedSongId, lastListenIncrement]);  // Dependencies
+  }, [lastSavedSongId, lastListenIncrement, currentSong, setQueue]);  // FIX: Deps đúng, bỏ setSongs
 
   // ==================== LISTEN HISTORY ====================
   const saveListenHistory = useCallback(async (songId) => {
@@ -190,13 +208,13 @@ export function PlayerProvider({ children }) {
 
       if (response.ok || (response.status === 400 && (await response.json()).message?.includes('exist'))) {
         setLastSavedSongId(songId);
-        // SỬA: Gọi incrementListenCount riêng sau history success (nếu muốn tách; nếu gộp, comment dòng này)
+        // GIỮ NGUYÊN: Gọi incrementListenCount sau history success
         await incrementListenCount(songId);
       }
     } catch (err) {
       console.error('Lỗi lưu lịch sử nghe:', err);
     }
-  }, [lastSavedSongId, incrementListenCount]);  // SỬA: Dependency OK (incrementListenCount đã định nghĩa trước)
+  }, [lastSavedSongId, incrementListenCount]);
 
   const resetSavedHistoryFlag = useCallback(() => {
     setLastSavedSongId(null);
@@ -371,13 +389,13 @@ export function PlayerProvider({ children }) {
     audio.play().then(() => {
       console.log('Playing successfully');
       setIsPlaying(true);
-      saveListenHistory(song.id);  // Tự động gọi history + increment (nếu gộp)
+      saveListenHistory(song.id);  // Tự động gọi history + increment
     }).catch(err => {
       console.error('Play error:', err);
       setIsPlaying(false);
       setIsLoading(false);
     });
-  }, [saveListenHistory, resetSavedHistoryFlag]);  // SỬA: Dependency OK
+  }, [saveListenHistory, resetSavedHistoryFlag]);
 
   const pauseSong = useCallback(() => {
     audioRef.current.pause();
@@ -397,13 +415,13 @@ export function PlayerProvider({ children }) {
       }
       audio.play().then(() => {
         setIsPlaying(true);
-        saveListenHistory(currentSong.id);  // Tự động gọi history + increment (nếu gộp)
+        saveListenHistory(currentSong.id);  // Tự động gọi history + increment
       }).catch(err => {
         console.error('Play error:', err);
         setIsPlaying(false);
       });
     }
-  }, [currentSong, isPlaying, saveListenHistory]);  // SỬA: Dependency OK
+  }, [currentSong, isPlaying, saveListenHistory]);
 
   const seekTo = useCallback((time) => {
     audioRef.current.currentTime = time;
@@ -503,7 +521,7 @@ export function PlayerProvider({ children }) {
         if (d && !isNaN(d)) setDuration(d);
         return d || 0;
       },
-// 
+
       // THÊM: Expose hàm increment riêng (dùng từ component khác nếu cần)
       incrementListenCount,
     }}>
