@@ -1,8 +1,7 @@
+// FILE: demo/src/pages/ProfilePage.jsx
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
-import api from '../../services/api';
-import { getMySongs } from '../../services/songService';
-import { API_ENDPOINTS } from '../../utils/constants';
+import { useNavigate } from 'react-router-dom';
+import { fetchProfileData } from '../../services/profileService'; // Import từ service mới
 import SongCard from '../../components/music/SongCard';
 import './ProfilePage.css';
 
@@ -12,70 +11,29 @@ function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const navigate = useNavigate(); // 2. Khởi tạo navigate
+  const navigate = useNavigate();
 
-  const fetchProfileData = useCallback(async () => {
+  const loadProfileData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [resArt, resArtSong, resAlb, userRes] = await Promise.all([
-        api.get(API_ENDPOINTS.ARTISTS),
-        api.get(API_ENDPOINTS.ARTIST_SONGS.BASE),
-        api.get(API_ENDPOINTS.ALBUMS),
-        api.get(API_ENDPOINTS.MY_INFO)
-      ]);
-
-      const aMap = {};
-      const artistsData = resArt.data.result || resArt.data || [];
-      artistsData.forEach(a => aMap[a.idartist || a.id] = a.artistname || a.name);
-
-      const asMap = {};
-      const artSongData = resArtSong.data.result || resArtSong.data || [];
-      artSongData.forEach(item => {
-        if (!asMap[item.idsong]) asMap[item.idsong] = [];
-        asMap[item.idsong].push(item.idartist);
-      });
-
-      const albMap = {};
-      const albumsData = resAlb.data.result || resAlb.data || [];
-      albumsData.forEach(al => albMap[al.idalbum || al.id] = al.albumname || al.title);
-
-      setUser(userRes.data.result || userRes.data);
-
-      try {
-        const songsRes = await getMySongs();
-        const rawSongs = songsRes.data.result || songsRes.data || [];
-        const processed = rawSongs.map(song => {
-          const sId = song.songId || song.id;
-          const artistNames = (asMap[sId] || []).map(id => aMap[id]).join(', ') || song.artist || 'Unknown Artist';
-          return {
-            ...song,
-            id: sId,
-            artist: artistNames,
-            album: albMap[song.idalbum] || song.album || 'Single',
-            coverUrl: song.avatar || '/default-cover.png',
-          };
-        });
-        setMySongs(processed);
-      } catch (songErr) {
-        console.error("Lỗi getMySongs (400):", songErr);
-        setMySongs([]);
-      }
-
+      const { user: fetchedUser, mySongs: fetchedSongs } = await fetchProfileData();
+      setUser(fetchedUser);
+      setMySongs(fetchedSongs);
     } catch (err) {
-      console.error("Profile fetch error:", err);
-      setError("Không thể tải thông tin cá nhân. Vui lòng thử lại.");
+      console.error('Profile fetch error:', err);
+      setError('Không thể tải thông tin cá nhân. Vui lòng thử lại.');
+      setMySongs([]); // Clear songs on error
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchProfileData();
-  }, [fetchProfileData]);
+    loadProfileData();
+  }, [loadProfileData]);
 
-  // 3. Hàm xử lý chuyển hướng sang trang thanh toán
   const handleUpgradeClick = () => {
     navigate('/checkout');
   };
@@ -84,7 +42,7 @@ function ProfilePage() {
   if (error) return (
     <div className="profile-status">
       <p>{error}</p>
-      <button className="retry-btn" onClick={fetchProfileData}>Thử lại</button>
+      <button className="retry-btn" onClick={loadProfileData}>Thử lại</button>
     </div>
   );
 
@@ -136,7 +94,6 @@ function ProfilePage() {
               <li>✓ Tải nhạc ngoại tuyến</li>
               <li>✓ Nghe nhạc cùng bạn bè</li>
             </ul>
-            {/* 4. Gán hàm vào sự kiện onClick */}
             <button
               className="btn-plan active"
               onClick={handleUpgradeClick}
@@ -146,6 +103,18 @@ function ProfilePage() {
           </div>
         </div>
       </section>
+
+      {/* My Songs Section - Thêm để render mySongs */}
+      {mySongs.length > 0 && (
+        <section className="my-songs-section">
+          <h2>Bài hát của bạn ({mySongs.length})</h2>
+          <div className="song-grid">
+            {mySongs.map(song => (
+              <SongCard key={song.id} song={song} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

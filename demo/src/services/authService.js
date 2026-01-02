@@ -4,39 +4,19 @@ import { API_ENDPOINTS } from '../utils/constants';
 
 export const login = async (username, password) => {
   try {
-    console.log('🔐 Attempting login with:', { username });
-    
     const response = await api.post(API_ENDPOINTS.LOGIN, {
       username,
       password
     });
     
-    console.log('✅ Login API Response FULL:', response);
-    console.log('✅ Login response.data:', response.data);
-    
     const data = response.data.result || response.data;
-    console.log('✅ Extracted data:', data);
     
     let token = data.token || data.access_token || data.accessToken;
     let refreshToken = data.refreshToken || data.refresh_token;
     
-    console.log('✅ Token found:', token ? 'YES' : 'NO');
-    console.log('✅ Token value:', token);
-    console.log('✅ Refresh token:', refreshToken);
-    
     if (!token || !token.includes('.')) {
-      console.error('❌ Invalid token format');
       throw new Error('Invalid token received from backend');
     }
-    
-    // DEBUG: Check all possible role fields
-    console.log('🔍 Checking role fields in data:');
-    console.log('  - data.role:', data.role);
-    console.log('  - data.user?.role:', data.user?.role);
-    console.log('  - data.result?.role:', data.result?.role);
-    console.log('  - data.authorities:', data.authorities);
-    console.log('  - data.scope:', data.scope);
-    console.log('  - All keys in data:', Object.keys(data));
     
     // Try to find role from various possible locations
     let userRole = 'USER';
@@ -58,15 +38,8 @@ export const login = async (username, password) => {
         userRole = 'ADMIN';
       }
     }
-    // Method 4: Check if username is admin (for testing)
-    else if (username.toLowerCase().includes('admin')) {
-      userRole = 'ADMIN';
-      console.log('⚠️  Assuming ADMIN role based on username');
-    }
     
-    console.log(`✅ Determined user role: ${userRole}`);
-    
-    // ✅ LƯU TOKEN VÀO LOCALSTORAGE
+    // LƯU TOKEN VÀO LOCALSTORAGE
     localStorage.setItem('token', token);
     
     if (refreshToken) {
@@ -81,8 +54,6 @@ export const login = async (username, password) => {
       id: data.userId || data.id || data.user?.id,
       email: data.email || data.user?.email
     };
-    
-    console.log('✅ Saving user info to localStorage:', userInfo);
     
     localStorage.setItem('user', JSON.stringify(userInfo));
     
@@ -99,10 +70,7 @@ export const login = async (username, password) => {
     };
     
   } catch (error) {
-    console.error('❌ Login error details:');
-    console.error('  - Error message:', error.message);
-    console.error('  - Error response:', error.response?.data);
-    console.error('  - Error status:', error.response?.status);
+    console.error('Login error details:', error);
     
     const errorMsg = error.response?.data?.message || 
                     error.response?.data?.error || 
@@ -117,8 +85,6 @@ export const login = async (username, password) => {
   }
 };
 
-
-
 // Hàm lấy thông tin user hiện tại
 export const getCurrentUser = () => {
   try {
@@ -132,9 +98,7 @@ export const getCurrentUser = () => {
 
 export const register = async (userData) => {
   try {
-    console.log('Calling register API with:', userData);
     const response = await api.post(API_ENDPOINTS.USERS, userData);
-    console.log('Register API response:', response);
     
     const data = response.data;
     
@@ -159,6 +123,7 @@ export const register = async (userData) => {
       } else if (errorData.error) {
         errorMsg = errorData.error;
       } else if (errorData.code) {
+        // Mapping cho các error code phổ biến
         const errorMap = {
           1001: 'Username đã tồn tại',
           1002: 'Email đã được sử dụng',
@@ -195,8 +160,6 @@ const isValidToken = (token) => {
   if (token.length < 10) return false;
   return true;
 };
-
-
 
 export const isAuthenticated = () => {
   return !!getCurrentUser();

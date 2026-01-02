@@ -7,7 +7,6 @@ import { API_ENDPOINTS } from '../utils/constants';
 export const getAllSongs = async (params = {}) => {
   try {
     const response = await api.get(API_ENDPOINTS.SONGS, { params });
-    console.log('getAllSongs response:', response.data); // Debug
     return response.data;
   } catch (error) {
     console.error('Error in getAllSongs:', error);
@@ -29,95 +28,14 @@ export const getSongById = async (id) => {
 // Lấy bài hát theo thể loại
 export const getGenreSongs = async (genreId) => {
   try {
-    // Kiểm tra xem endpoint nào phù hợp
     const response = await api.get(API_ENDPOINTS.SONGS, {
       params: { genre: genreId }
     });
-    console.log(`getGenreSongs for genre ${genreId}:`, response.data);
     
-    // Nếu API trả về định dạng khác, điều chỉnh ở đây
     return response.data;
   } catch (error) {
     console.error(`Error getting songs for genre ${genreId}:`, error);
-    
-    // Nếu endpoint không tồn tại, trả về dữ liệu mẫu
-    console.warn('Using mock data for genre songs');
-    
-    // Dữ liệu mẫu dựa trên genreId
-    const genreData = {
-      1: { name: 'Pop', color: '#1DB954' },
-      2: { name: 'Hip Hop', color: '#FF6B6B' },
-      3: { name: 'Rock', color: '#4ECDC4' },
-      4: { name: 'R&B', color: '#FF9F1C' },
-      5: { name: 'Jazz', color: '#9D4EDD' },
-      6: { name: 'Electronic', color: '#06D6A0' },
-    };
-    
-    const currentGenre = genreData[genreId] || { name: 'Unknown', color: '#666' };
-    
-    const mockSongs = [
-      {
-        id: 1,
-        title: `Bài hát ${currentGenre.name} 1`,
-        artist: 'Nghệ sĩ 1',
-        genre: currentGenre.name,
-        duration: '3:45',
-        cover: 'https://picsum.photos/100/100',
-        likes: 1245,
-        plays: 45000,
-        color: currentGenre.color
-      },
-      {
-        id: 2,
-        title: `Bài hát ${currentGenre.name} 2`,
-        artist: 'Nghệ sĩ 2',
-        genre: currentGenre.name,
-        duration: '4:20',
-        cover: 'https://picsum.photos/100/100',
-        likes: 987,
-        plays: 32000,
-        color: currentGenre.color
-      },
-      {
-        id: 3,
-        title: `Bài hát ${currentGenre.name} 3`,
-        artist: 'Nghệ sĩ 3',
-        genre: currentGenre.name,
-        duration: '3:15',
-        cover: 'https://picsum.photos/100/100',
-        likes: 654,
-        plays: 21000,
-        color: currentGenre.color
-      },
-      {
-        id: 4,
-        title: `Bài hát ${currentGenre.name} 4`,
-        artist: 'Nghệ sĩ 4',
-        genre: currentGenre.name,
-        duration: '5:10',
-        cover: 'https://picsum.photos/100/100',
-        likes: 321,
-        plays: 15000,
-        color: currentGenre.color
-      },
-      {
-        id: 5,
-        title: `Bài hát ${currentGenre.name} 5`,
-        artist: 'Nghệ sĩ 5',
-        genre: currentGenre.name,
-        duration: '3:55',
-        cover: 'https://picsum.photos/100/100',
-        likes: 210,
-        plays: 9800,
-        color: currentGenre.color
-      }
-    ];
-    
-    return {
-      result: mockSongs,
-      total: mockSongs.length,
-      genre: currentGenre
-    };
+    throw error;
   }
 };
 

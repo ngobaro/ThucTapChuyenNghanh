@@ -210,7 +210,7 @@ function Header() {
           <input
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Tìm kiếm bài hát, nghệ sĩ, album..."
+            placeholder="Tìm kiếm bài hát,  album..."
           />
         </div>
 

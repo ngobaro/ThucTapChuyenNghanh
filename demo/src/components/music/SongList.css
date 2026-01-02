@@ -12,19 +12,19 @@
   --bg-elevated: #242424;
   --bg-accent: #2a2a2a;
   --bg-modal: #282828;
-  
+
   --primary: #1db954;
   --primary-hover: #1ed760;
   --primary-light: #4ac776;
   --primary-color: #1db954;
-  
+
   --text-primary: #ffffff;
   --text-secondary: #b3b3b3;
   --text-muted: #6a6a6a;
-  
+
   --border-color: #333333;
   --border-light: #404040;
-  
+
   --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
   --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.7);
 }
@@ -58,7 +58,7 @@
   display: grid;
   grid-template-columns: 50px 2.5fr 1.5fr 1fr 100px 80px 100px;
   gap: 20px;
-  padding: 16px 24px;
+  padding: 16px 0px;
   border-bottom: 2px solid var(--border-color);
   color: var(--text-secondary);
   font-size: 12px;
@@ -73,7 +73,7 @@
   display: grid;
   grid-template-columns: 50px 2.5fr 1.5fr 1fr 100px 80px 100px;
   gap: 20px;
-  padding: 16px 24px;
+  padding: 16px 0px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -124,7 +124,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.col-title > div {
+.col-title>div {
   min-width: 0;
   flex: 1;
 }
@@ -260,8 +260,13 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* =======================
@@ -284,6 +289,7 @@
     opacity: 0;
     transform: translateY(40px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -598,90 +604,97 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* =======================
    RESPONSIVE DESIGN
 ======================== */
 @media (max-width: 1024px) {
+
   .song-list-header,
   .song-list-item {
     grid-template-columns: 40px 2fr 1fr 100px 80px;
     gap: 16px;
     padding: 14px 20px;
   }
-  
+
   .col-artist,
   .col-listened {
     display: none;
   }
-  
+
   .playlist-modal {
     max-width: 700px;
   }
-  
+
   .playlists-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 }
 
 @media (max-width: 768px) {
+
   .song-list-header,
   .song-list-item {
     grid-template-columns: 30px 1fr 100px 60px;
     gap: 12px;
     padding: 12px 16px;
   }
-  
+
   .song-list-title {
     font-size: 24px;
   }
-  
+
   .col-artist,
   .col-album,
   .col-listened {
     display: none;
   }
-  
+
   .col-title img {
     width: 40px;
     height: 40px;
   }
-  
+
   .col-title h4 {
     font-size: 15px;
   }
-  
+
   .col-title p {
     font-size: 13px;
   }
-  
+
   .song-list-header {
     font-size: 11px;
     padding: 12px 16px;
   }
-  
+
   .playlist-modal {
     max-width: 90%;
     max-height: 85vh;
   }
-  
+
   .modal-content {
     padding: 24px;
   }
-  
+
   .playlists-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 12px;
   }
-  
+
   .playlist-item {
     padding: 16px;
     min-height: 80px;
   }
-  
+
   .playlist-avatar {
     width: 50px;
     height: 50px;
@@ -689,77 +702,82 @@
 }
 
 @media (max-width: 480px) {
+
   .song-list-header,
   .song-list-item {
     grid-template-columns: 30px 1fr 50px;
     gap: 10px;
     padding: 10px 12px;
   }
-  
+
   .col-duration {
     display: none;
   }
-  
+
   .col-actions {
     opacity: 1;
   }
-  
+
   .btn-action {
     width: 32px;
     height: 32px;
     padding: 6px;
   }
-  
+
   .song-list-title {
     font-size: 20px;
     margin-bottom: 16px;
   }
-  
+
   .playlist-modal {
     max-width: 95%;
     max-height: 80vh;
   }
-  
+
   .modal-header {
     padding: 20px 24px;
   }
-  
+
   .modal-header h3 {
     font-size: 20px;
   }
-  
+
   .modal-content {
     padding: 20px;
   }
-  
+
   .playlists-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .btn-create-playlist {
     padding: 16px;
     font-size: 15px;
   }
-  
+
   .create-playlist-form {
     padding: 20px;
   }
 }
 
 .delete-btn {
-  color: #ff4757; /* Red for delete */
+  color: #ff4757;
+  /* Red for delete */
 }
+
 .btn-delete-playlist {
-  background:  #034423;
+  background: #034423;
   color: white;
   border: none;
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
 }
+
 .btn-delete-playlist:hover {
   background: #79b869;
 }
+
 .btn-delete-playlist:disabled {
   background: #ccc;
   cursor: not-allowed;

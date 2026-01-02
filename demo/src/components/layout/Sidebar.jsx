@@ -7,10 +7,7 @@ import './Sidebar.css';
 function Sidebar() {
   // Menu chính đơn giản hóa
   const mainMenu = [
-    // { icon: Home, label: 'Trang chủ', path: '/' },
-    // { icon: Library, label: 'Thư viện', path: '/library' },
-    // { icon: Music, label: 'Khám phá', path: '/discover' },
-    // { icon: TrendingUp, label: 'Bảng xếp hạng', path: '/charts' },
+ 
     { icon: Music, label: 'Khám phá', path: '/' },
     { icon: Library, label: 'Thư viện', path: '/library' },
     { icon: TrendingUp, label: 'Bảng xếp hạng', path: '/rank' }

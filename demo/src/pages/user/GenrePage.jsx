@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import SongList from '../../components/music/SongList';
 import api from '../../services/api';
 import { API_ENDPOINTS } from '../../utils/constants';
+import { loadAlbumsMap } from '../../services/albumService'; // THÊM: Để resolve album ID → name
 import './GenrePage.css';
 
 function GenrePage() {
@@ -12,6 +13,7 @@ function GenrePage() {
   const [genre, setGenre] = useState(null);
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [albumMap, setAlbumMap] = useState({}); // MỚI: Cache album map
 
   useEffect(() => {
     if (id) {
@@ -107,13 +109,16 @@ function GenrePage() {
         songsData = songsResponse.data.data;
       }
 
-      // Load artists và artist-songs parallel
-      const [artistsMap, artistSongMap] = await Promise.all([
+      // Load artists, artist-songs, và albums parallel
+      const [artistsMap, artistSongMap, albumsMap] = await Promise.all([
         loadArtists(),
-        loadArtistSongs()
+        loadArtistSongs(),
+        loadAlbumsMap() // ← THÊM: Load album map để resolve ID → name
       ]);
 
-      // Process songs với multi-artist mapping
+      setAlbumMap(albumsMap); // Cache cho fallback nếu cần
+
+      // Process songs với multi-artist mapping và album resolution
       const processedSongs = songsData.map(song => {
         const songId = song.songId || song.id;
         const artistIds = artistSongMap[songId] || [];
@@ -126,11 +131,17 @@ function GenrePage() {
 
         const artistName = artistNames || song.artist || 'Unknown Artist';
 
+        // SỬA FALLBACK ALBUM: Resolve từ map nếu có idalbum
+        let albumName = song.album || song.albumname || '';
+        if (song.idalbum && !albumName) {
+          albumName = albumsMap[song.idalbum] || 'Single'; 
+        }
+
         return {
           id: songId,
           title: song.title || 'Unknown Title',
           artist: artistName,
-          album: song.idalbum || 'Single',
+          album: albumName, // ← BÂY GIỜ LÀ TÊN THẬT HOẶC 'Single'
           duration: formatDuration(song.duration),
           coverUrl: song.avatar || '/default-cover.png',
           audioUrl: song.path || '',
@@ -144,7 +155,6 @@ function GenrePage() {
       setGenre({
         id: parseInt(id),
         name: genreData.genrename || genreData.name || 'Thể loại',
-        description: getDescription(genreData.genrename || genreData.name),
         color: getColorByGenre(parseInt(id)),
         songCount: processedSongs.length
       });
@@ -171,20 +181,6 @@ function GenrePage() {
       8: '#FFD166',
     };
     return colors[genreId] || '#666';
-  };
-
-  const getDescription = (genreName) => {
-    const descriptions = {
-      'Pop': 'Nhạc Pop phổ biến nhất hiện nay với giai điệu bắt tai và dễ nghe.',
-      'Hip Hop': 'Hip Hop đỉnh cao với những bản rap chất lượng và beat mạnh mẽ.',
-      'Rock': 'Rock mạnh mẽ, cá tính với guitar điện và trống sôi động.',
-      'R&B': 'R&B nhẹ nhàng, sâu lắng với giai điệu quyến rũ.',
-      'Jazz': 'Jazz tinh tế với những giai điệu phức tạp và nghệ thuật.',
-      'Electronic': 'Electronic Dance Music sôi động, hoàn hảo cho các bữa tiệc.',
-      'Country': 'Country dân dã, gần gũi với cuộc sống và tình cảm chân thật.',
-      'Indie': 'Indie độc lập và sáng tạo, mang hơi thở mới mẻ.'
-    };
-    return descriptions[genreName] || 'Khám phá những bài hát tuyệt vời trong thể loại này.';
   };
 
   const formatDuration = (duration) => {
@@ -241,7 +237,6 @@ function GenrePage() {
             {genre.name}
           </div>
           <h1 className="genre-title">{genre.name}</h1>
-          <p className="genre-description">{genre.description}</p>
           <div className="genre-stats">
             <span className="stat-item">
               <strong>{genre.songCount}</strong> bài hát

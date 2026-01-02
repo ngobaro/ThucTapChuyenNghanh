@@ -1,3 +1,4 @@
+// FILE: demo/src/routes/AppRoutes.jsx (hoặc src/AppRoutes.jsx)
 import { Routes, Route } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
 
@@ -11,7 +12,7 @@ import OftenListenedPage from '../pages/user/OftenListenedPage';
 import AlbumsPage from '../pages/user/AlbumsPage';
 import AlbumDetailPage from '../pages/user/AlbumDetailPage';
 import PlaylistDetailPage from '../pages/user/PlaylistDetailPage';
-import GenresPage from '../pages/user/GenresPage';
+import GenresPage from '../pages/user/GenresPage'; // ✅ ĐÚNG IMPORT
 import GenrePage from '../pages/user/GenrePage';
 import ProfilePage from '../pages/user/ProfilePage';
 import CheckoutPage from '../pages/user/CheckoutPage';
@@ -38,7 +39,7 @@ function AppRoutes() {
         <Route path="albums" element={<AlbumsPage />} />
         <Route path="album/:id" element={<AlbumDetailPage />} />
         <Route path="playlist/:id" element={<PlaylistDetailPage />} />
-        <Route path="genres" element={<GenresPage />} />
+        <Route path="genres" element={<GenresPage />} /> {/* ✅ ROUTE ĐÚNG */}
         <Route path="genre/:id" element={<GenrePage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="admin/dashboard" element={<DashboardPage />} />

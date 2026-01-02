@@ -21,6 +21,18 @@ function SongItem({
     const { duration, loading } = useAudioDuration(song.audioUrl);
     const displayDuration = duration > 0 ? duration : parseDuration(song.duration);
 
+    // ===== FALLBACK ALBUM LOGIC (SỬA: Nếu album = artist name hoặc 'Single', ghi chữ 'singer' literal) =====
+    const getDisplayAlbum = () => {
+      let album = song.album || '';
+      // Đảm bảo album là string trước khi check
+      if (typeof album !== 'string') album = String(album);
+      // Nếu rỗng, 'Single', album = artist name, hoặc format "Title (Artist)", dùng chữ 'singer' literal
+      if (!album.trim() || album === 'Single' || album === song.artist || (album.includes('(') && album.includes(')'))) {
+        return 'singer'; // ← CHỮ 'singer' literal
+      }
+      return album; // Giữ tên album thật nếu có
+    };
+
     return (
         <div
             className={`song-list-item ${isCurrent ? 'playing' : ''}`}
@@ -43,7 +55,8 @@ function SongItem({
             </div>
 
             <span className="col-artist">{song.artist}</span>
-            <span className="col-album">{song.album || 'Single'}</span>
+            {/* SỬA: Dùng hàm fallback cho col-album */}
+            <span className="col-album">{getDisplayAlbum()}</span>
 
             <span className="col-duration">
                 {loading ? <Loader2 size={14} className="spinner" /> : formatTime(displayDuration)}

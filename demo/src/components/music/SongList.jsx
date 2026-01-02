@@ -26,10 +26,20 @@ function SongList({
   const [playlists, setPlaylists] = useState([]);
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   const [currentSongId, setCurrentSongId] = useState(null);
+  const [processedSongs, setProcessedSongs] = useState([]); // State để fallback album → singer
+
+  // ===== PROCESS SONGS WITH FALLBACK (Nếu không có album, dùng singer/artist) =====
+  useEffect(() => {
+    const fallbackSongs = songs.map((song) => ({
+      ...song,
+      album: song.album || song.artist || song.singer || 'Single' // Fallback: album → artist/singer → 'Single'
+    }));
+    setProcessedSongs(fallbackSongs);
+  }, [songs]);
 
   // ===== PLAY =====
   const handlePlaySong = (song, index) => {
-    playQueue(songs, index);
+    playQueue(processedSongs, index); // Dùng processedSongs
   };
 
   // ===== FAVORITE =====
@@ -64,7 +74,7 @@ function SongList({
   }, [loadUserPlaylists]);
 
   // ===== EMPTY =====
-  if (!songs.length) {
+  if (!processedSongs.length) {
     return <div className="song-list-empty">Chưa có bài hát</div>;
   }
 
@@ -80,13 +90,13 @@ function SongList({
           <span>Album</span>
           <span>Thời lượng</span>
           {showGenre && <span>Thể loại</span>}
-          <span></span>
+          <span></span> {/* Actions */}
         </div>
 
-        {songs.map((song, index) => (
+        {processedSongs.map((song, index) => (
           <SongItem
-            key={song.id}                    // ✅ key chuẩn
-            song={song}
+            key={song.id}
+            song={song} // Dùng processed song với album fallback sang singer
             index={index}
             isCurrent={currentSong?.id === song.id}
             isFavorited={isFavorite(song.id)}
