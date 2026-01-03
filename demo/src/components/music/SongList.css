@@ -90,7 +90,7 @@
 
 .song-list-item.playing {
   background: linear-gradient(135deg, rgba(29, 185, 84, 0.15), rgba(29, 185, 84, 0.05));
-  border-left: 3px solid var(--primary);
+ 
 }
 
 /* =======================

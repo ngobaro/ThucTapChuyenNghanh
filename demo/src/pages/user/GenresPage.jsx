@@ -1,7 +1,7 @@
 // FILE: demo/src/pages/GenresPage.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchGenresList } from '../../services/genreService'; // Import từ service mới
+import { fetchGenresList } from '../../services/genreService';
 import './GenresPage.css';
 
 function GenresPage() {
@@ -14,7 +14,7 @@ function GenresPage() {
       .then(setGenres)
       .catch((error) => {
         console.error('Error loading genres:', error);
-        setGenres([]); // Empty on error, no mock
+        setGenres([]);
       })
       .finally(() => {
         setLoading(false);
@@ -49,7 +49,6 @@ function GenresPage() {
           >
             <div className="genre-card-content">
               <h3 className="genre-name">{genre.name}</h3>
-              <p className="genre-description">{genre.description}</p>
               <div className="genre-count">{genre.count} bài hát</div>
             </div>
             <div

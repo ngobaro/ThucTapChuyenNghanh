@@ -29,11 +29,7 @@ function AlbumDetailPage() {
     }
   }, [id, navigate]);
 
-  const handlePlayAll = () => {
-    if (songs.length > 0) {
-      console.log('Play all songs in album:', album?.title);
-    }
-  };
+ 
 
   if (loading) {
     return (
@@ -84,22 +80,10 @@ function AlbumDetailPage() {
           <h1 className="album-title">{album.title}</h1>
           <h2 className="album-artist">{album.artist}</h2>
           <div className="album-meta">
-            <span>{album.year}</span> • <span>{album.genre}</span> • <span>{album.songCount} bài hát, {album.duration}</span>
+         
           </div>
           <p className="album-description">{album.description}</p>
           <div className="album-actions">
-            <button className="btn-play-album" onClick={handlePlayAll}>
-              <Play size={20} /> Phát album
-            </button>
-            <button className="btn-shuffle">
-              <Shuffle size={20} /> Xáo
-            </button>
-            <button className="btn-save">
-              <Heart size={20} /> Lưu
-            </button>
-            <button className="btn-more">
-              <MoreVertical size={20} />
-            </button>
           </div>
         </div>
       </div>

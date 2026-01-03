@@ -23,7 +23,6 @@ function FormFields({
                             type="text"
                             value={formData.title || ''}
                             onChange={e => handleChange('title', e.target.value)}
-                            placeholder="Nhập tiêu đề bài hát"
                             className={formErrors.title ? 'error' : ''}
                         />
                         {formErrors.title && <div className="error-text">{formErrors.title}</div>}
@@ -38,8 +37,11 @@ function FormFields({
                         >
                             <option value="">-- Chọn nghệ sĩ --</option>
                             {artists.map(artist => (
-                                <option key={artist.idartist || artist.id} value={artist.idartist || artist.id}>
-                                    {artist.artistname || artist.name || 'Unknown'}
+                                <option
+                                    key={artist.idartist || artist.id}
+                                    value={artist.idartist || artist.id}
+                                >
+                                    {artist.artistname || artist.name}
                                 </option>
                             ))}
                         </select>
@@ -54,8 +56,11 @@ function FormFields({
                         >
                             <option value="">-- Không thuộc album --</option>
                             {albumsWithArtists.map(album => (
-                                <option key={album.idalbum || album.id} value={album.idalbum || album.id}>
-                                    {album.albumname || album.title || 'Unknown'}
+                                <option
+                                    key={album.idalbum || album.id}
+                                    value={album.idalbum || album.id}
+                                >
+                                    {album.albumname || album.title}
                                 </option>
                             ))}
                         </select>
@@ -69,23 +74,24 @@ function FormFields({
                         >
                             <option value="">-- Không có thể loại --</option>
                             {genres.map(genre => (
-                                <option key={genre.idgenre || genre.id} value={genre.idgenre || genre.id}>
-                                    {genre.genrename || genre.name || 'Unknown'}
+                                <option
+                                    key={genre.idgenre || genre.id}
+                                    value={genre.idgenre || genre.id}
+                                >
+                                    {genre.genrename || genre.name}
                                 </option>
                             ))}
                         </select>
                     </div>
 
                     <div className="form-group">
-                        <label>Thời lượng *</label>
+                        <label>Thời lượng (tùy chọn)</label>
                         <input
                             type="text"
                             value={formData.duration || ''}
                             onChange={e => handleChange('duration', e.target.value)}
                             placeholder="VD: 04:12"
-                            className={formErrors.duration ? 'error' : ''}
                         />
-                        {formErrors.duration && <div className="error-text">{formErrors.duration}</div>}
                     </div>
 
                     <div className="form-group">
@@ -97,15 +103,7 @@ function FormFields({
                         />
                     </div>
 
-                    <div className="form-group">
-                        <label>Lượt xem *</label>
-                        <input
-                            type="text"
-                            value={formData.views || '0'}
-                            onChange={e => handleChange('views', e.target.value)}
-                            placeholder="VD: 0"
-                        />
-                    </div>
+                    {/* ❌ KHÔNG CÓ INPUT VIEWS */}
 
                     <div className="form-group">
                         <label>Ảnh bìa (tùy chọn)</label>
@@ -113,7 +111,6 @@ function FormFields({
                             type="text"
                             value={formData.avatar || ''}
                             onChange={e => handleChange('avatar', e.target.value)}
-                            placeholder="URL ảnh bìa"
                         />
                     </div>
 
@@ -123,7 +120,6 @@ function FormFields({
                             type="text"
                             value={formData.path || ''}
                             onChange={e => handleChange('path', e.target.value)}
-                            placeholder="URL file mp3"
                             className={formErrors.path ? 'error' : ''}
                         />
                         {formErrors.path && <div className="error-text">{formErrors.path}</div>}
@@ -134,7 +130,6 @@ function FormFields({
                         <textarea
                             value={formData.lyrics || ''}
                             onChange={e => handleChange('lyrics', e.target.value)}
-                            placeholder="Nhập lời bài hát"
                             rows={4}
                         />
                     </div>
@@ -256,8 +251,11 @@ function FormFields({
                         >
                             <option value="">-- Chọn nghệ sĩ --</option>
                             {artists.map(artist => (
-                                <option key={artist.idartist || artist.id} value={artist.idartist || artist.id}>
-                                    {artist.artistname || artist.name || 'Unknown'}
+                                <option
+                                    key={artist.idartist || artist.id}
+                                    value={artist.idartist || artist.id}
+                                >
+                                    {artist.artistname || artist.name}
                                 </option>
                             ))}
                         </select>

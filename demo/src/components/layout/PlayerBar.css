@@ -10,9 +10,9 @@
   flex-shrink: 0; /* Quan trọng: không co lại */
 }
 
-.player-bar.playing {
+/* .player-bar.playing {
   background: linear-gradient(to top, rgba(18, 18, 18, 0.98), rgba(25, 25, 25, 0.95));
-}
+} */
 
 .player-bar.empty {
   display: flex;
