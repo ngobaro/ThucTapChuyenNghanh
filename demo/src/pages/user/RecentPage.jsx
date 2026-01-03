@@ -1,26 +1,49 @@
-// FILE: demo/src/pages/RecentPage.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Clock, Loader2 } from 'lucide-react';
 import { fetchRecentSongs } from '../../services/recentService';
 import SongListRecent from '../../components/music/SongListRecent';
+import { usePlayer } from '../../context/PlayerContext';
 import './RecentPage.css';
 
 function RecentPage() {
   const [recentSongs, setRecentSongs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { currentSong } = usePlayer();
 
-  useEffect(() => {
-    fetchRecentSongs()
-      .then(setRecentSongs)
-      .catch((error) => {
-        console.error('Error loading recent songs:', error);
-        // No fallback mock data
-        setRecentSongs([]);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+  // Hàm load recent songs với debounce
+  const loadRecent = useCallback(async () => {
+    setLoading(true);
+    try {
+      const songs = await fetchRecentSongs();
+      // FIX: Sử dụng uniqueKey cho React key nếu có
+      const songsWithUniqueKeys = songs.map(song => ({
+        ...song,
+        reactKey: song.uniqueKey || `${song.id}_${song.rawListenDate?.getTime()}`
+      }));
+      setRecentSongs(songsWithUniqueKeys);
+    } catch (error) {
+      console.error('Error loading recent songs:', error);
+      setRecentSongs([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  // Load lần đầu
+  useEffect(() => {
+    loadRecent();
+  }, [loadRecent]);
+
+  // Cập nhật khi có bài hát mới phát
+  useEffect(() => {
+    if (currentSong) {
+      const timer = setTimeout(() => {
+        loadRecent();
+      }, 1000); // Debounce 1 giây
+      
+      return () => clearTimeout(timer);
+    }
+  }, [currentSong, loadRecent]);
 
   if (loading) {
     return (
@@ -49,6 +72,7 @@ function RecentPage() {
             <h2>📋 Lịch sử nghe</h2>
             <span className="song-count">{recentSongs.length} bài hát</span>
           </div>
+          {/* Truyền songs với unique keys */}
           <SongListRecent songs={recentSongs} title="" />
         </section>
       ) : (
