@@ -32,6 +32,7 @@ function AppRoutes() {
       <Route element={<MainLayout />}>
         <Route index element={<HomePage />} />
         <Route path="library" element={<LibraryPage />} />
+        <Route path="playlists" element={<LibraryPage />} />
         <Route path="rank" element={<RankPage />} />
         <Route path="favorites" element={<FavoritesPage />} />
         <Route path="recent" element={<RecentPage />} />
@@ -39,18 +40,16 @@ function AppRoutes() {
         <Route path="albums" element={<AlbumsPage />} />
         <Route path="album/:id" element={<AlbumDetailPage />} />
         <Route path="playlist/:id" element={<PlaylistDetailPage />} />
-        <Route path="genres" element={<GenresPage />} /> {/* ✅ ROUTE ĐÚNG */}
+        <Route path="genres" element={<GenresPage />} /> 
         <Route path="genre/:id" element={<GenrePage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="admin/dashboard" element={<DashboardPage />} />
       </Route>
 
-      {/* Pages không layout */}
       <Route path="checkout" element={<CheckoutPage />} />
       <Route path="login" element={<LoginPage />} />
       <Route path="register" element={<RegisterPage />} />
 
-      {/* 404 */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
