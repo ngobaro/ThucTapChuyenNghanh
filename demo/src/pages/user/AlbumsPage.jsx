@@ -14,7 +14,6 @@ function AlbumsPage() {
     fetchAlbumsList()
       .then(setAlbums)
       .catch(() => {
-        // No fallback, just set empty
         setAlbums([]);
       })
       .finally(() => {
@@ -32,35 +31,35 @@ function AlbumsPage() {
 
   if (loading) {
     return (
-      <div className="albums-page loading">
-        <div className="spinner"></div>
+      <div className="music-collection loading-view">
+        <div className="loading-circle"></div>
       </div>
     );
   }
 
   return (
-    <div className="albums-page">
-      <div className="page-header">
+    <div className="music-collection">
+      <div className="collection-top">
         <h1>Albums</h1>
         <p>Khám phá album mới và phổ biến</p>
       </div>
 
-      <div className="albums-grid">
+      <div className="collection-grid">
         {albums.map(album => (
           <div 
             key={album.id} 
-            className="album-card"
+            className="music-item"
             onClick={() => handleAlbumClick(album.id)}
           >
             <div 
-              className="album-cover"
+              className="item-thumb"
               style={{ backgroundColor: album.color }}
             >
-              <div className="album-cover-content">
-                <span className="album-icon">A</span>
+              <div className="thumb-content">
+                <span className="thumb-text">Album</span>
               </div>
               <button 
-                className="btn-play"
+                className="play-action"
                 onClick={(e) => {
                   e.stopPropagation();
                   handlePlayAlbum(album);
@@ -69,12 +68,12 @@ function AlbumsPage() {
                 <Play size={24} />
               </button>
             </div>
-            <div className="album-info">
-              <h3 className="album-title">{album.title}</h3>
-              <p className="album-artist">{album.artist}</p>
-              <div className="album-meta">
-                <span className="album-year">{album.year}</span>
-                <span className="album-tracks">{album.tracks} bài</span>
+            <div className="item-details">
+              <h3 className="item-title">{album.title}</h3>
+              <p className="item-author">{album.artist}</p>
+              <div className="item-meta">
+                <span className="item-year">{album.year}</span>
+                <span className="item-count">{album.tracks} bài</span>
               </div>
             </div>
           </div>
@@ -82,7 +81,7 @@ function AlbumsPage() {
       </div>
       
       {albums.length === 0 && (
-        <div className="empty-state">
+        <div className="no-items">
           <p>Chưa có album nào</p>
         </div>
       )}

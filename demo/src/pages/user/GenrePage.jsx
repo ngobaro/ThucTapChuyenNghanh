@@ -171,7 +171,7 @@ function GenrePage() {
 
   const getColorByGenre = (genreId) => {
     const colors = {
-      1: '#1DB954',
+      1: '#b9c133ff',
       2: '#FF6B6B',
       3: '#4ECDC4',
       4: '#FF9F1C',
