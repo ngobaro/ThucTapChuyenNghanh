@@ -99,7 +99,6 @@ function DashboardPage() {
         alert('Xóa thành công!');
         loadAllData();
       } catch (error) {
-        console.error(`Error deleting ${type}:`, error);
         alert('Xóa thất bại!');
       }
       return;
@@ -133,7 +132,6 @@ function DashboardPage() {
       alert('Xóa bài hát thành công!');
       loadAllData();
     } catch (error) {
-      console.error('Error deleting song:', error);
       alert('Xóa bài hát thất bại! Vui lòng thử lại.');
     }
   };
@@ -240,8 +238,7 @@ function DashboardPage() {
 
       loadAllData();
     } catch (error) {
-      console.error('Error saving:', error);
-      alert('Lưu thất bại: ' + (error.response?.data?.message || error.message));
+      alert('Lưu thất bại: do tồn tại' );
     } finally {
       setSaving(false);
     }

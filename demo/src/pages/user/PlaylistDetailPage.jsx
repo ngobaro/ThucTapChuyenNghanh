@@ -4,7 +4,14 @@ import { useEffect, useState } from 'react';
 import { Play, Shuffle, Heart, MoreVertical, Clock, User, Loader2, Trash2 } from 'lucide-react';
 import SongList from '../../components/music/SongList';
 import { usePlayer } from '../../context/PlayerContext';
-import { fetchPlaylistDetails, removeSongFromPlaylist, deletePlaylist } from '../../services/playlistService'; // Import từ service
+
+import {
+  fetchPlaylistDetails,
+  removeSongFromPlaylist,
+  deletePlaylist,
+  calculateTotalDuration   // ✅ FIX: thêm import này
+} from '../../services/playlistService';
+
 import './PlaylistDetailPage.css';
 
 function PlaylistDetailPage() {
@@ -15,7 +22,6 @@ function PlaylistDetailPage() {
     currentSong,
     queue,
     queueIndex,
-    nextSong,
     playSong,
     clearQueue,
     setQueue,
@@ -29,75 +35,52 @@ function PlaylistDetailPage() {
   const [deletingPlaylist, setDeletingPlaylist] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      fetchPlaylistDetails(id)
-        .then(({ playlist: fetchedPlaylist, songs: fetchedSongs }) => {
-          setPlaylist(fetchedPlaylist);
-          setSongs(fetchedSongs);
-        })
-        .catch((err) => {
-          console.error('Playlist fetch error:', err);
-          setError('Không thể tải playlist. Vui lòng thử lại.');
-          setTimeout(() => navigate('/library'), 2000);
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    }
+    if (!id) return;
+
+    fetchPlaylistDetails(id)
+      .then(({ playlist, songs }) => {
+        setPlaylist(playlist);
+        setSongs(songs);
+      })
+      .catch(() => {
+        setError('Không thể tải playlist.');
+        setTimeout(() => navigate('/library'), 2000);
+      })
+      .finally(() => setLoading(false));
   }, [id, navigate]);
 
-  // Xử lý xóa bài hát khỏi playlist (giữ nguyên logic player)
   const handleRemoveSongFromPlaylist = async (songId) => {
-    try {
-      await removeSongFromPlaylist(id, songId);
-      // Cập nhật local state
-      const newSongs = songs.filter(s => s.id !== songId);
-      setSongs(newSongs);
-      setPlaylist(prev => ({
-        ...prev,
-        songCount: newSongs.length,
-        duration: calculateTotalDuration(newSongs) // Utility từ service nếu cần
-      }));
+    await removeSongFromPlaylist(id, songId);
 
-      // Xử lý player queue
-      if (currentSong?.id === songId) {
-        if (newSongs.length === 0) {
-          clearQueue();
-        } else {
-          const newQueue = queue.filter(s => s.id !== songId);
-          const newIndex = queueIndex >= newQueue.length ? 0 : queueIndex;
-          setQueue(newQueue);
-          setQueueIndex(newIndex);
-          if (newQueue.length > 0) {
-            playSong(newQueue[newIndex], newQueue, newIndex);
-          }
-        }
-      } else if (queue.some(s => s.id === songId)) {
-        const newQueue = queue.filter(s => s.id !== songId);
-        const newIndex = queue.findIndex(s => s.id === currentSong?.id);
-        setQueue(newQueue);
-        if (newIndex >= 0) setQueueIndex(newIndex);
+    const newSongs = songs.filter(s => s.id !== songId);
+    setSongs(newSongs);
+
+    setPlaylist(prev => ({
+      ...prev,
+      songCount: newSongs.length,
+      duration: calculateTotalDuration(newSongs)
+    }));
+
+    if (currentSong?.id === songId) {
+      if (newSongs.length === 0) {
+        clearQueue();
+        return;
       }
-    } catch (err) {
-      console.error('Remove song error:', err);
-      alert('Có lỗi khi xóa bài hát khỏi playlist');
+
+      const newQueue = queue.filter(s => s.id !== songId);
+      const newIndex = Math.min(queueIndex, newQueue.length - 1);
+      setQueue(newQueue);
+      setQueueIndex(newIndex);
+      playSong(newQueue[newIndex], newQueue, newIndex);
     }
   };
 
   const handleDeletePlaylist = async () => {
-    if (!confirm('Bạn có chắc muốn xóa playlist này? Hành động không thể hoàn tác!')) return;
+    if (!confirm('Bạn có chắc muốn xóa playlist này?')) return;
 
     setDeletingPlaylist(true);
-    try {
-      await deletePlaylist(playlist.id);
-      alert('Đã xóa playlist!');
-      navigate('/library');
-    } catch (err) {
-      console.error('Delete playlist error:', err);
-      alert('Có lỗi khi xóa playlist: ' + (err.response?.data?.message || 'Thử lại'));
-    } finally {
-      setDeletingPlaylist(false);
-    }
+    await deletePlaylist(playlist.id);
+    navigate('/library');
   };
 
   if (loading) {
@@ -109,12 +92,11 @@ function PlaylistDetailPage() {
     );
   }
 
-  if (error || !playlist) {
+  if (!playlist || error) {
     return (
       <div className="playlist-detail-page not-found">
         <h2>Playlist không tồn tại</h2>
-        <p>{error}</p>
-        <button onClick={() => navigate('/library')}>Quay lại thư viện</button>
+        <button onClick={() => navigate('/library')}>Quay lại</button>
       </div>
     );
   }
@@ -123,44 +105,34 @@ function PlaylistDetailPage() {
     <div className="playlist-detail-page">
       <div className="playlist-header">
         <div className="playlist-cover-large" style={{ backgroundColor: playlist.color }}>
-          <span className="playlist-icon">♫</span>
+          ♫
         </div>
         <div className="playlist-info">
           <div className="playlist-badge">PLAYLIST</div>
-          <h1 className="playlist-title">{playlist.name}</h1>
+          <h1>{playlist.name}</h1>
           <div className="playlist-meta">
-            <span className="meta-item"><User size={16} />{playlist.creator}</span>
-            <span className="meta-item">{playlist.songCount} bài hát</span>
-            <span className="meta-item">Tạo ngày {playlist.createdDate}</span>
+            <span><User size={16} /> {playlist.creator}</span>
+            <span>{playlist.songCount} bài hát</span>
+            <span>{playlist.createdDate}</span>
           </div>
         </div>
       </div>
 
-      <div className="playlist-controls">
-        <button
-          className="btn-delete-playlist"
-          onClick={handleDeletePlaylist}
-          disabled={deletingPlaylist}
-        >
-          {deletingPlaylist ? <Loader2 size={20} className="spinner" /> : <Trash2 size={20} />}
-          Xóa playlist
-        </button>
-      </div>
+      <button
+        className="btn-delete-playlist"
+        onClick={handleDeletePlaylist}
+        disabled={deletingPlaylist}
+      >
+        {deletingPlaylist ? <Loader2 size={18} /> : <Trash2 size={18} />}
+        Xóa playlist
+      </button>
 
-      <div className="playlist-content">
-        <div className="section-header">
-          <h2>Danh sách bài hát</h2>
-          <span className="song-count">{songs.length} bài</span>
-        </div>
-
-        <SongList
-          songs={songs}
-          title=""
-          showGenre={true}
-          playlistId={playlist.id}
-          onRemoveSong={handleRemoveSongFromPlaylist}
-        />
-      </div>
+      <SongList
+        songs={songs}
+        playlistId={playlist.id}
+        onRemoveSong={handleRemoveSongFromPlaylist}
+        showGenre
+      />
     </div>
   );
 }

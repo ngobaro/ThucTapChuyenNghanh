@@ -1,12 +1,19 @@
 // FILE: demo/src/services/profileService.js
 import api from './api';
 import { API_ENDPOINTS } from '../utils/constants';
-import { getMySongs } from './songService'; // Reuse existing my songs fetch
+import { getMySongs } from './songService'; // Tái sử dụng hàm lấy danh sách bài hát cá nhân
 
-// Fetch full profile data (user + processed mySongs)
+/**
+ * Tải dữ liệu tổng hợp cho trang Hồ sơ (Profile)
+ * Bao gồm: Thông tin người dùng (User) và danh sách bài hát đã tải lên (My Songs)
+ */
 export const fetchProfileData = async () => {
   try {
-    // Parallel fetches
+    // ============================================================
+    // BƯỚC 1: TRUY VẤN DỮ LIỆU SONG SONG
+    // Sử dụng Promise.all để tối ưu hóa thời gian tải bằng cách gọi 
+    // tất cả các API cần thiết cùng một lúc.
+    // ============================================================
     const [resArt, resArtSong, resAlb, userRes] = await Promise.all([
       api.get(API_ENDPOINTS.ARTISTS),
       api.get(API_ENDPOINTS.ARTIST_SONGS.BASE),
@@ -14,7 +21,13 @@ export const fetchProfileData = async () => {
       api.get(API_ENDPOINTS.MY_INFO)
     ]);
 
-    // Process artists map
+    // ============================================================
+    // BƯỚC 2: XỬ LÝ BẢN ĐỒ TRA CỨU (MAPPING)
+    // Chuyển đổi dữ liệu mảng thô thành các Object (Key-Value) để
+    // truy xuất thông tin nhanh chóng khi duyệt danh sách bài hát.
+    // ============================================================
+
+    // Xử lý bản đồ Nghệ sĩ (ID -> Tên)
     const aMap = {};
     const artistsData = resArt.data.result || resArt.data || [];
     artistsData.forEach(a => {
@@ -22,7 +35,7 @@ export const fetchProfileData = async () => {
       aMap[artistId] = a.artistname || a.name || 'Unknown Artist';
     });
 
-    // Process artist-song map
+    // Xử lý bản đồ Quan hệ Nghệ sĩ - Bài hát (Song ID -> [Artist IDs])
     const asMap = {};
     const artSongData = resArtSong.data.result || resArtSong.data || [];
     artSongData.forEach(item => {
@@ -34,7 +47,7 @@ export const fetchProfileData = async () => {
       }
     });
 
-    // Process albums map
+    // Xử lý bản đồ Album (ID -> Tên Album)
     const albMap = {};
     const albumsData = resAlb.data.result || resAlb.data || [];
     albumsData.forEach(al => {
@@ -42,16 +55,22 @@ export const fetchProfileData = async () => {
       albMap[albumId] = al.albumname || al.title || 'Single';
     });
 
-    // User data
+    // Trích xuất thông tin người dùng hiện tại
     const user = userRes.data.result || userRes.data || null;
 
-    // My songs
+    // ============================================================
+    // BƯỚC 3: XỬ LÝ DANH SÁCH BÀI HÁT CỦA TÔI
+    // Định dạng lại dữ liệu bài hát kết hợp với các bản đồ đã tạo ở Bước 2.
+    // ============================================================
     let mySongs = [];
     try {
       const songsRes = await getMySongs();
       const rawSongs = songsRes.data.result || songsRes.data || [];
+      
       mySongs = rawSongs.map(song => {
         const sId = song.songId || song.id;
+        
+        // Tìm và nối tên các nghệ sĩ tham gia bài hát từ Map
         const artistNames = (asMap[sId] || [])
           .map(id => aMap[id])
           .filter(name => name)
@@ -66,13 +85,15 @@ export const fetchProfileData = async () => {
         };
       });
     } catch (songErr) {
-      console.error('Error fetching my songs:', songErr);
-      mySongs = []; // Empty on error
+      // Nếu có lỗi khi lấy danh sách bài hát, trả về mảng rỗng thay vì làm lỗi cả trang Profile
+      mySongs = [];
     }
 
+    // Trả về kết quả cuối cùng cho Component xử lý hiển thị
     return { user, mySongs };
+    
   } catch (error) {
-    console.error('Error fetching profile data:', error);
-    throw error; // Throw to component for handling
+    // Chuyển tiếp lỗi để Component có thể hiển thị thông báo lỗi (UI error boundary)
+    throw error;
   }
 };

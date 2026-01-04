@@ -2,6 +2,21 @@
 import api from './api';
 import { API_ENDPOINTS } from '../utils/constants';
 
+// Utility to decode JWT token
+const decodeToken = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (err) {
+    console.error('Decode token error:', err);
+    return null;
+  }
+};
+
 export const login = async (username, password) => {
   try {
     const response = await api.post(API_ENDPOINTS.LOGIN, {
@@ -18,26 +33,51 @@ export const login = async (username, password) => {
       throw new Error('Invalid token received from backend');
     }
     
-    // Try to find role from various possible locations
-    let userRole = 'USER';
+    // Decode token to extract role
+    const decodedToken = decodeToken(token);
+    console.log('Decoded token payload:', decodedToken); // Debug: Check payload in console
     
-    // Method 1: Direct role field
-    if (data.role) {
-      userRole = data.role;
-    }
-    // Method 2: Nested in user object
-    else if (data.user && data.user.role) {
-      userRole = data.user.role;
-    }
-    // Method 3: From authorities array
-    else if (data.authorities && Array.isArray(data.authorities)) {
-      const adminAuthority = data.authorities.find(auth => 
-        auth.includes('ADMIN') || auth.includes('ROLE_ADMIN')
-      );
-      if (adminAuthority) {
+    // Extract role from token payload (supports scope, role, userRole, authorities)
+    let userRole = 'USER';
+    if (decodedToken) {
+      if (decodedToken.scope && decodedToken.scope.includes('ADMIN')) {
         userRole = 'ADMIN';
+      } else if (decodedToken.role && decodedToken.role.toUpperCase().includes('ADMIN')) {
+        userRole = 'ADMIN';
+      } else if (decodedToken.userRole && decodedToken.userRole.toUpperCase().includes('ADMIN')) {
+        userRole = 'ADMIN';
+      } else if (decodedToken.authorities && Array.isArray(decodedToken.authorities)) {
+        const adminAuthority = decodedToken.authorities.find(auth => 
+          auth.includes('ADMIN') || auth.includes('ROLE_ADMIN')
+        );
+        if (adminAuthority) {
+          userRole = 'ADMIN';
+        }
       }
     }
+    
+    // Fallback to response data if not in token
+    if (userRole === 'USER') {
+      // Method 1: Direct role field
+      if (data.role && data.role.toUpperCase().includes('ADMIN')) {
+        userRole = 'ADMIN';
+      }
+      // Method 2: Nested in user object
+      else if (data.user && data.user.role && data.user.role.toUpperCase().includes('ADMIN')) {
+        userRole = 'ADMIN';
+      }
+      // Method 3: From authorities array
+      else if (data.authorities && Array.isArray(data.authorities)) {
+        const adminAuthority = data.authorities.find(auth => 
+          auth.includes('ADMIN') || auth.includes('ROLE_ADMIN')
+        );
+        if (adminAuthority) {
+          userRole = 'ADMIN';
+        }
+      }
+    }
+    
+    console.log('Extracted role from login:', userRole); // Debug: Confirm role extraction
     
     // LƯU TOKEN VÀO LOCALSTORAGE
     localStorage.setItem('token', token);
@@ -46,13 +86,13 @@ export const login = async (username, password) => {
       localStorage.setItem('refreshToken', refreshToken);
     }
     
-    // Lưu user info với role đã xác định
+    // Lưu user info với role đã xác định (uppercase for consistency)
     const userInfo = {
       username,
-      role: userRole,
+      role: userRole.toUpperCase(), // Ensure uppercase
       // Thêm các field khác nếu có
-      id: data.userId || data.id || data.user?.id,
-      email: data.email || data.user?.email
+      id: data.userId || data.id || data.user?.id || decodedToken?.sub,
+      email: data.email || data.user?.email || decodedToken?.email
     };
     
     localStorage.setItem('user', JSON.stringify(userInfo));
@@ -172,7 +212,7 @@ export const getUserId = () => {
 
 export const getUserRole = () => {
   const user = getCurrentUser();
-  return user?.role?.toUpperCase() || 'USER';
+  return user?.role || 'USER'; // Already uppercase from login
 };
 
 export const isAdmin = () => {

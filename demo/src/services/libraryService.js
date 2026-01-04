@@ -2,7 +2,11 @@
 import api from './api';
 import { API_ENDPOINTS } from '../utils/constants';
 
-// Load artists map
+/**
+ * ============================================================
+ * LOAD MAP NGHỆ SĨ (ARTIST ID -> ARTIST NAME)
+ * ============================================================
+ */
 export const loadArtistsMap = async () => {
   try {
     const response = await api.get(API_ENDPOINTS.ARTISTS);
@@ -11,9 +15,9 @@ export const loadArtistsMap = async () => {
 
     if (Array.isArray(response.data)) {
       artistsData = response.data;
-    } else if (response.data.result && Array.isArray(response.data.result)) {
+    } else if (Array.isArray(response.data?.result)) {
       artistsData = response.data.result;
-    } else if (response.data.data && Array.isArray(response.data.data)) {
+    } else if (Array.isArray(response.data?.data)) {
       artistsData = response.data.data;
     }
 
@@ -24,13 +28,16 @@ export const loadArtistsMap = async () => {
     });
 
     return artistsMap;
-  } catch (error) {
-    console.warn('Error loading artists:', error);
+  } catch (_) {
     return {};
   }
 };
 
-// Load artist-song map
+/**
+ * ============================================================
+ * LOAD MAP QUAN HỆ NGHỆ SĨ - BÀI HÁT (SONG ID -> [ARTIST IDs])
+ * ============================================================
+ */
 export const loadArtistSongMap = async () => {
   try {
     const response = await api.get(API_ENDPOINTS.ARTIST_SONGS.BASE);
@@ -39,7 +46,7 @@ export const loadArtistSongMap = async () => {
 
     if (Array.isArray(response.data)) {
       data = response.data;
-    } else if (response.data.result && Array.isArray(response.data.result)) {
+    } else if (Array.isArray(response.data?.result)) {
       data = response.data.result;
     }
 
@@ -55,25 +62,32 @@ export const loadArtistSongMap = async () => {
     });
 
     return artistSongMap;
-  } catch (error) {
-    console.warn('Error loading artist songs:', error);
+  } catch (_) {
     return {};
   }
 };
 
-// Get user ID
+/**
+ * ============================================================
+ * LẤY USER ID (CACHE LOCALSTORAGE)
+ * ============================================================
+ */
 export const getUserId = async () => {
   let currentUserId = localStorage.getItem('userId');
+
   if (!currentUserId) {
     try {
       const userRes = await api.get(API_ENDPOINTS.MY_INFO);
       const userData = userRes.data?.result || userRes.data;
-      currentUserId = userData?.id || userData?.userId || userData?.id_user;
+      currentUserId =
+        userData?.id ||
+        userData?.userId ||
+        userData?.id_user;
+
       if (currentUserId) {
         localStorage.setItem('userId', currentUserId.toString());
       }
     } catch (error) {
-      console.error('Error fetching user info:', error);
       if (error.response?.status === 401) {
         localStorage.clear();
         window.location.href = '/login';
@@ -81,35 +95,39 @@ export const getUserId = async () => {
       return null;
     }
   }
+
   return Number(currentUserId);
 };
 
-// Fetch full user history (no limit)
+/**
+ * ============================================================
+ * LẤY TOÀN BỘ LỊCH SỬ NGHE NHẠC CỦA USER
+ * ============================================================
+ */
 export const fetchUserHistory = async (userId) => {
   try {
     const response = await api.get(API_ENDPOINTS.USER_HISTORY(userId));
-
     let historyData = [];
+
     if (Array.isArray(response.data)) {
       historyData = response.data;
-    } else if (response.data?.result && Array.isArray(response.data.result)) {
+    } else if (Array.isArray(response.data?.result)) {
       historyData = response.data.result;
-    } else if (response.data?.data && Array.isArray(response.data.data)) {
+    } else if (Array.isArray(response.data?.data)) {
       historyData = response.data.data;
-    } else if (response.data?.history && Array.isArray(response.data.history)) {
+    } else if (Array.isArray(response.data?.history)) {
       historyData = response.data.history;
     }
 
-    // Sort by date desc
-    const getDate = (item) => {
-      return item.listen_date ||
-        item.listenedAt ||
-        item.listenDate ||
-        item.listen_time ||
-        item.date ||
-        item.created_at ||
-        item.time;
-    };
+    // Sắp xếp lịch sử theo thời gian nghe (mới nhất trước)
+    const getDate = (item) =>
+      item.listen_date ||
+      item.listenedAt ||
+      item.listenDate ||
+      item.listen_time ||
+      item.date ||
+      item.created_at ||
+      item.time;
 
     historyData.sort((a, b) => {
       const dateA = getDate(a);
@@ -120,15 +138,23 @@ export const fetchUserHistory = async (userId) => {
 
     return historyData;
   } catch (error) {
-    console.error('Error fetching user history:', error);
     throw error;
   }
 };
 
-// Process one history item to song
-export const processHistoryToSong = async (historyItem, artistsMap, artistSongMap) => {
+/**
+ * ============================================================
+ * CHUYỂN 1 ITEM HISTORY -> OBJECT BÀI HÁT
+ * ============================================================
+ */
+export const processHistoryToSong = async (
+  historyItem,
+  artistsMap,
+  artistSongMap
+) => {
   try {
-    const songId = historyItem.idsong ||
+    const songId =
+      historyItem.idsong ||
       historyItem.songId ||
       historyItem.id_song ||
       historyItem.diêten ||
@@ -142,159 +168,193 @@ export const processHistoryToSong = async (historyItem, artistsMap, artistSongMa
     if (!song) return null;
 
     const artistIds = artistSongMap[songId] || [];
-    const artistNames = artistIds
-      .map(id => artistsMap[id] || 'Unknown Artist')
-      .filter(name => name)
-      .join(', ');
+    const artistName =
+      artistIds
+        .map(id => artistsMap[id])
+        .filter(Boolean)
+        .join(', ') ||
+      song.artist ||
+      song.artistname ||
+      'Unknown Artist';
 
-    const artistName = artistNames || song.artist || song.artistname || 'Unknown Artist';
+    const getListenDate = (item) =>
+      item.listen_date ||
+      item.listenedAt ||
+      item.listenDate ||
+      item.listen_time ||
+      item.date ||
+      item.created_at ||
+      item.time;
 
-    const getListenDate = (item) => {
-      return item.listen_date ||
-        item.listenedAt ||
-        item.listenDate ||
-        item.listen_time ||
-        item.date ||
-        item.created_at ||
-        item.time;
-    };
-
-    const listenDateField = getListenDate(historyItem);
-    const listenedAt = listenDateField ? new Date(listenDateField) : new Date();
+    let listenedAt = new Date(getListenDate(historyItem) || Date.now());
     if (isNaN(listenedAt.getTime())) listenedAt = new Date();
 
-    const timeAgo = getTimeAgo(listenedAt);
-
-    const playCount = historyItem.playCount ||
+    const playCount =
+      historyItem.playCount ||
       historyItem.play_count ||
       historyItem.count ||
-      song.views || song.listens || 1;
+      song.views ||
+      song.listens ||
+      1;
 
     return {
       id: song.songId || song.id || songId,
       title: song.title || song.name || 'Unknown Title',
       artist: artistName,
-      album: song.idalbum ? `Album ${song.idalbum}` :
-        song.album || song.albumname || 'Single',
+      album: song.idalbum
+        ? `Album ${song.idalbum}`
+        : song.album || song.albumname || 'Single',
       duration: song.duration || 0,
-      coverUrl: song.avatar || song.cover || song.image || '/default-cover.png',
-      audioUrl: song.path || song.url || song.audio_url || '',
-      listenedAt: timeAgo,
+      coverUrl:
+        song.avatar ||
+        song.cover ||
+        song.image ||
+        '/default-cover.png',
+      audioUrl:
+        song.path ||
+        song.url ||
+        song.audio_url ||
+        '',
+      listenedAt: getTimeAgo(listenedAt),
       rawListenDate: listenedAt,
-      playCount: playCount,
+      playCount,
       views: song.views || song.listens || 0,
-      releaseDate: song.releasedate || song.release_date,
-      genreId: song.genreId || song.idgenre || song.genre_id,
+      releaseDate:
+        song.releasedate || song.release_date,
+      genreId:
+        song.genreId ||
+        song.idgenre ||
+        song.genre_id,
     };
-  } catch (error) {
-    console.error('Error processing history item:', error);
+  } catch (_) {
     return null;
   }
 };
 
-// Fetch often songs (18 unique random from history)
+/**
+ * ============================================================
+ * LẤY DANH SÁCH BÀI HÁT NGHE NHIỀU (TỐI ĐA 18 BÀI)
+ * ============================================================
+ */
 export const fetchOftenSongs = async () => {
   try {
     const userId = await getUserId();
     if (!userId) throw new Error('No user ID');
 
     const history = await fetchUserHistory(userId);
-
     if (history.length === 0) return [];
 
-    // Shuffle and select 18 unique songs by songId
+    // Trộn lịch sử và chọn 18 bài khác nhau theo songId
     const shuffledHistory = [...history].sort(() => 0.5 - Math.random());
     const selectedHistory = [];
     const seenSongIds = new Set();
 
     for (const item of shuffledHistory) {
-      const songId = item.idsong ||
+      const songId =
+        item.idsong ||
         item.songId ||
         item.id_song ||
         item.diêten ||
         item.song_id ||
         item.id;
 
-      if (songId && !seenSongIds.has(songId) && selectedHistory.length < 18) {
+      if (songId && !seenSongIds.has(songId)) {
         selectedHistory.push(item);
         seenSongIds.add(songId);
       }
       if (selectedHistory.length === 18) break;
     }
 
-    // Load maps parallel
+    // Load map nghệ sĩ song song
     const [artistsMap, artistSongMap] = await Promise.all([
       loadArtistsMap(),
-      loadArtistSongMap()
+      loadArtistSongMap(),
     ]);
 
-    // Process selected songs parallel
-    const oftenSongsPromises = selectedHistory.map(historyItem =>
-      processHistoryToSong(historyItem, artistsMap, artistSongMap)
-    );
-
-    const songs = (await Promise.all(oftenSongsPromises)).filter(Boolean);
+    const songs = (
+      await Promise.all(
+        selectedHistory.map(item =>
+          processHistoryToSong(item, artistsMap, artistSongMap)
+        )
+      )
+    ).filter(Boolean);
 
     return songs;
   } catch (error) {
-    console.error('Error fetching often songs:', error);
     throw error;
   }
 };
 
-// Fetch library playlists with song counts
+/**
+ * ============================================================
+ * LẤY DANH SÁCH PLAYLIST TRONG THƯ VIỆN (KÈM SỐ BÀI HÁT)
+ * ============================================================
+ */
 export const fetchLibraryPlaylists = async () => {
   try {
     const response = await api.get(API_ENDPOINTS.PLAYLISTS);
     const playlistData = response.data.result || response.data || [];
 
-    // Fetch songCount parallel for each playlist
     const playlistsWithCount = await Promise.all(
       playlistData.map(async (p) => {
         try {
-          const songsRes = await api.get(API_ENDPOINTS.PLAYLIST_SONGS(p.idplaylist || p.id));
-          const songCount = (songsRes.data.result || songsRes.data || []).length;
+          const songsRes = await api.get(
+            API_ENDPOINTS.PLAYLIST_SONGS(p.idplaylist || p.id)
+          );
+          const songCount =
+            (songsRes.data.result || songsRes.data || []).length;
           return { ...p, songCount };
-        } catch (err) {
-          console.warn(`Failed to fetch song count for playlist ${p.id}:`, err);
+        } catch (_) {
           return { ...p, songCount: 0 };
         }
       })
     );
 
-    // Enrich with colors
-    const colors = ['#1DB954', '#FF6B6B', '#4ECDC4', '#FF9F1C', '#9D4EDD', '#06D6A0', '#118AB2', '#FFD166'];
-    const enrichedPlaylists = playlistsWithCount.map((p, i) => ({
+    const colors = [
+      '#1DB954',
+      '#FF6B6B',
+      '#4ECDC4',
+      '#FF9F1C',
+      '#9D4EDD',
+      '#06D6A0',
+      '#118AB2',
+      '#FFD166',
+    ];
+
+    return playlistsWithCount.map((p, i) => ({
       id: p.idplaylist || p.id,
       name: p.nameplaylist || p.name || 'Playlist không tên',
       songCount: p.songCount || 0,
-      color: colors[i % colors.length]
+      color: colors[i % colors.length],
     }));
-
-    return enrichedPlaylists;
   } catch (error) {
-    console.error('Error fetching library playlists:', error);
     throw error;
   }
 };
 
-// Fetch full library data (playlists + often songs)
+/**
+ * ============================================================
+ * FETCH TOÀN BỘ DỮ LIỆU THƯ VIỆN (PLAYLIST + OFTEN SONGS)
+ * ============================================================
+ */
 export const fetchLibraryData = async () => {
   try {
-    // Parallel: playlists and often songs
     const [playlists, oftenSongs] = await Promise.all([
       fetchLibraryPlaylists(),
-      fetchOftenSongs()
+      fetchOftenSongs(),
     ]);
 
     return { playlists, oftenSongs };
   } catch (error) {
-    console.error('Error fetching library data:', error);
     throw error;
   }
 };
 
-// Utility: Get time ago
+/**
+ * ============================================================
+ * TIỆN ÍCH: TÍNH THỜI GIAN "BAO LÂU TRƯỚC"
+ * ============================================================
+ */
 export const getTimeAgo = (date) => {
   const now = new Date();
   const diffMs = now - date;

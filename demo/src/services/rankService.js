@@ -1,15 +1,19 @@
 // FILE: demo/src/services/rankService.js
 import api from './api';
 import { API_ENDPOINTS } from '../utils/constants';
-import { getAllSongs } from './songService'; // Reuse existing song fetch
+import { getAllSongs } from './songService'; // Tái sử dụng hàm fetch bài hát sẵn có
 
-// Lấy tất cả artists (cache map)
+/**
+ * Tải danh sách nghệ sĩ và chuyển đổi thành Map tra cứu
+ * Mục đích: Tối ưu hóa việc tìm tên nghệ sĩ theo ID với độ phức tạp O(1)
+ */
 export const loadArtistsMap = async () => {
   try {
     const response = await api.get(API_ENDPOINTS.ARTISTS);
     const artistsMap = {};
     let artistsData = [];
 
+    // Hỗ trợ nhiều cấu trúc phản hồi khác nhau từ phía Server
     if (Array.isArray(response.data)) {
       artistsData = response.data;
     } else if (response.data.result && Array.isArray(response.data.result)) {
@@ -18,6 +22,7 @@ export const loadArtistsMap = async () => {
       artistsData = response.data.data;
     }
 
+    // Ánh xạ ID sang tên nghệ sĩ
     artistsData.forEach(artist => {
       const artistId = artist.idartist || artist.id;
       const artistName = artist.artistname || artist.name || 'Unknown Artist';
@@ -26,12 +31,14 @@ export const loadArtistsMap = async () => {
 
     return artistsMap;
   } catch (error) {
-    console.warn('Error loading artists:', error);
     return {};
   }
 };
 
-// Lấy artist-song relationships (map)
+/**
+ * Tải bảng quan hệ Nghệ sĩ - Bài hát
+ * Trả về Map tra cứu: { idsong: [idartist1, idartist2, ...] }
+ */
 export const loadArtistSongMap = async () => {
   try {
     const response = await api.get(API_ENDPOINTS.ARTIST_SONGS.BASE);
@@ -44,6 +51,7 @@ export const loadArtistSongMap = async () => {
       data = response.data.result;
     }
 
+    // Nhóm các ID nghệ sĩ theo từng ID bài hát
     data.forEach(item => {
       const songId = item.idsong;
       const artistId = item.idartist;
@@ -58,17 +66,20 @@ export const loadArtistSongMap = async () => {
 
     return artistSongMap;
   } catch (error) {
-    console.warn('Error loading artist songs:', error);
     return {};
   }
 };
 
-// Process songs với artist mapping
+/**
+ * Chuẩn hóa dữ liệu bài hát kết hợp với thông tin nghệ sĩ
+ * Chuyển đổi format dữ liệu từ Backend sang chuẩn hiển thị của Frontend
+ */
 export const processSongsWithArtists = async (allSongs, artistsMap, artistSongMap) => {
   const processedSongs = allSongs.map(song => {
     const songId = song.songId || song.id;
     const artistIds = artistSongMap[songId] || [];
 
+    // Chuyển đổi mảng ID nghệ sĩ thành chuỗi tên (ví dụ: "Sơn Tùng M-TP, SlimV")
     const artistNames = artistIds
       .map(id => artistsMap[id] || 'Unknown Artist')
       .filter(name => name)
@@ -76,28 +87,32 @@ export const processSongsWithArtists = async (allSongs, artistsMap, artistSongMa
 
     const artistName = artistNames || song.artist || 'Unknown Artist';
 
-    const views = song.views || Math.floor(Math.random() * 100000); // Giả lập nếu không có
+    // Xử lý lượt xem: Nếu dữ liệu trống, tạm thời giả lập số ngẫu nhiên cho bảng xếp hạng
+    const views = song.views || Math.floor(Math.random() * 100000);
 
     return {
       id: songId,
       title: song.title || 'Unknown Title',
       artist: artistName,
-      album: song.idalbum || 'Single', // Có thể enhance sau nếu cần album name
+      album: song.idalbum || 'Single',
       duration: formatDuration(song.duration),
       coverUrl: song.avatar || '/default-cover.png',
       views: views,
       releaseDate: song.releasedate,
-      color: getRandomColor()
+      color: getRandomColor() // Gán màu sắc ngẫu nhiên cho UI bảng xếp hạng
     };
   });
 
   return processedSongs;
 };
 
-// Fetch full rank data (trending + new releases)
+/**
+ * Lấy dữ liệu tổng hợp cho trang Xếp hạng (Rank)
+ * Bao gồm: Top 12 Trending (Xem nhiều nhất) và Top 6 New Releases (Mới nhất)
+ */
 export const fetchRankData = async () => {
   try {
-    // Fetch songs
+    // 1. Tải danh sách bài hát thô
     const response = await getAllSongs();
     const allSongs = Array.isArray(response) ? response :
       response.result || response.data || [];
@@ -106,21 +121,21 @@ export const fetchRankData = async () => {
       return { trendingSongs: [], newReleases: [] };
     }
 
-    // Load artists và artist-songs parallel
+    // 2. Tải song song thông tin nghệ sĩ và bảng quan hệ để tối ưu thời gian chờ
     const [artistsMap, artistSongMap] = await Promise.all([
       loadArtistsMap(),
       loadArtistSongMap()
     ]);
 
-    // Process songs
+    // 3. Xử lý logic ánh xạ tên nghệ sĩ vào từng bài hát
     const processedSongs = await processSongsWithArtists(allSongs, artistsMap, artistSongMap);
 
-    // Trending: Sort by views desc, top 12
+    // 4. Phân loại Trending: Sắp xếp theo lượt xem giảm dần, lấy 12 bài đầu
     const trendingSongs = [...processedSongs]
       .sort((a, b) => b.views - a.views)
       .slice(0, 12);
 
-    // New releases: Sort by releaseDate desc, top 6
+    // 5. Phân loại Mới phát hành: Sắp xếp theo ngày phát hành giảm dần, lấy 6 bài đầu
     const newReleases = [...processedSongs]
       .sort((a, b) => {
         const dateA = a.releaseDate ? new Date(a.releaseDate) : new Date(0);
@@ -131,20 +146,23 @@ export const fetchRankData = async () => {
 
     return { trendingSongs, newReleases };
   } catch (error) {
-    console.error('Error fetching rank data:', error);
-    return { trendingSongs: [], newReleases: [] }; // No mock, return empty
+    return { trendingSongs: [], newReleases: [] };
   }
 };
 
-// Utility functions
+/**
+ * Định dạng thời lượng bài hát (Duration)
+ * Chuyển đổi giây sang định dạng MM:SS hoặc làm đẹp chuỗi HH:MM:SS
+ */
 const formatDuration = (duration) => {
   if (!duration) return '00:00';
 
   if (typeof duration === 'string') {
     if (duration.includes(':')) {
       const parts = duration.split(':');
+      // Nếu là HH:MM:SS, lược bỏ HH (giờ) chỉ lấy MM:SS
       if (parts.length === 3) {
-        return `${parts[0]}:${parts[1]}`;
+        return `${parts[1]}:${parts[2]}`;
       }
       return duration;
     }
@@ -160,6 +178,9 @@ const formatDuration = (duration) => {
   return '00:00';
 };
 
+/**
+ * Tạo màu sắc ngẫu nhiên cho nền của bài hát trong bảng xếp hạng
+ */
 const getRandomColor = () => {
   const colors = ['#1DB954', '#FF6B6B', '#4ECDC4', '#FF9F1C', '#9D4EDD', '#06D6A0', '#118AB2', '#FFD166'];
   return colors[Math.floor(Math.random() * colors.length)];

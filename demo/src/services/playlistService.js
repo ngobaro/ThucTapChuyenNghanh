@@ -242,21 +242,25 @@ const getPlaylistColor = (id) => {
   return colors[index];
 };
 
-const calculateTotalDuration = (songsList) => {
-  let totalSeconds = 0;
-  songsList.forEach(s => {
-    const raw = s.duration;
-    if (typeof raw === 'number') totalSeconds += raw;
-    else if (typeof raw === 'string' && raw.includes(':')) {
-      const parts = raw.split(':').map(Number);
-      if (parts.length === 2) totalSeconds += parts[0] * 60 + parts[1];
-      else if (parts.length === 3) totalSeconds += parts[0] * 3600 + parts[1] * 60 + parts[2];
+export const calculateTotalDuration = (songs = []) => {
+  let total = 0;
+
+  songs.forEach(song => {
+    if (!song?.duration) return;
+
+    if (typeof song.duration === 'number') {
+      total += song.duration;
+    } else if (typeof song.duration === 'string') {
+      const parts = song.duration.split(':').map(Number);
+      if (parts.length === 2) total += parts[0] * 60 + parts[1];
+      if (parts.length === 3) total += parts[0] * 3600 + parts[1] * 60 + parts[2];
     }
   });
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  return hours > 0 ? `${hours} giờ ${minutes} phút` : `${minutes} phút`;
+
+  return total;
 };
+
+
 
 const formatDate = (d) => {
   if (!d) return 'Không rõ';
