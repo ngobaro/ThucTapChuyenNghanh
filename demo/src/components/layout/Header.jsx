@@ -9,7 +9,7 @@ import { usePlayer } from '../../context/PlayerContext';
 import { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import { API_ENDPOINTS } from '../../utils/constants';
-import { logout } from '../../services/authService';
+import { logout, getCurrentUser, getUserRole } from '../../services/authService'; // Import thêm để sync
 import './Header.css';
 
 function Header() {
@@ -30,21 +30,96 @@ function Header() {
   const dropdownRef = useRef(null);
   const searchRef = useRef(null);
 
-  /* ===================== AUTH ===================== */
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
+  /* ===================== UTILS: DECODE JWT TOKEN ===================== */
+  const decodeToken = (token) => {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(jsonPayload);
+    } catch (err) {
+      console.error('Decode token error:', err);
+      return null;
+    }
+  };
 
-    if (token && userData) {
+  /* ===================== AUTH: SYNC WITH SERVICE ===================== */
+  const syncAuthState = () => {
+    const token = localStorage.getItem('token');
+    const user = getCurrentUser(); // Sử dụng service để lấy user
+
+    if (token && user) {
       try {
-        const user = JSON.parse(userData);
         setIsLoggedIn(true);
         setUserName(user.username || user.name || 'User');
-        setUserRole(user.role?.toUpperCase() || 'USER');
-      } catch {
+        
+        // Ưu tiên role từ localStorage (đã set từ login với decode)
+        let role = getUserRole(); // Already uppercase from service
+        
+        // Fallback decode token nếu localStorage role là USER (có thể do login cũ)
+        if (role === 'USER' && token.includes('.')) {
+          const decoded = decodeToken(token);
+          console.log('Decoded token in syncAuthState:', decoded); // Debug payload
+          if (decoded) {
+            let tokenRole = 'USER';
+            if (decoded.scope && decoded.scope.toUpperCase().includes('ADMIN')) {
+              tokenRole = 'ADMIN';
+            } else if (decoded.role && decoded.role.toUpperCase().includes('ADMIN')) {
+              tokenRole = 'ADMIN';
+            } else if (decoded.userRole && decoded.userRole.toUpperCase().includes('ADMIN')) {
+              tokenRole = 'ADMIN';
+            } else if (decoded.authorities && Array.isArray(decoded.authorities)) {
+              const adminAuthority = decoded.authorities.find(auth => 
+                auth.toUpperCase().includes('ADMIN')
+              );
+              if (adminAuthority) {
+                tokenRole = 'ADMIN';
+              }
+            }
+            
+            if (tokenRole === 'ADMIN') {
+              role = 'ADMIN';
+              // Update localStorage để sync vĩnh viễn
+              localStorage.setItem('user', JSON.stringify({ ...user, role: 'ADMIN' }));
+            }
+          }
+        }
+        setUserRole(role);
+      } catch (err) {
         handleLogout();
       }
+    } else {
+      setIsLoggedIn(false);
+      setUserName('');
+      setUserRole('USER');
     }
+  };
+
+  useEffect(() => {
+    syncAuthState(); // Chạy ngay khi mount
+  }, []);
+
+  // Listen cho thay đổi storage (sau login/register từ page khác)
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'token' || e.key === 'user') {
+        syncAuthState();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Trigger ngay nếu đã login (cho trường hợp navigate sau login)
+    // + Interval ngắn để catch login async
+    const timer = setTimeout(syncAuthState, 500); // Tăng delay để login hoàn tất
+    const interval = setInterval(syncAuthState, 2000); // Poll mỗi 2s nếu cần (tạm thời, remove sau test)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, []);
 
   /* ===================== CLICK OUTSIDE ===================== */
@@ -194,6 +269,7 @@ function Header() {
     try { await logout(); } catch { }
     localStorage.clear();
     setIsLoggedIn(false);
+    setShowDropdown(false);
     navigate('/');
   };
 

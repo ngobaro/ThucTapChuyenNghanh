@@ -109,6 +109,11 @@ body .form-group input:disabled {
   color: #888888 !important;
   cursor: not-allowed !important;
 }
+.field-error1{
+  color: #ff4d4f !important;
+  font-size: 12px !important;
+  margin-top: 4px !important;
+}
 
 /* ================ BUTTON - ONLY COLORED ELEMENT ================ */
 body .auth-container button[type="submit"],
